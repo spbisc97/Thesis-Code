@@ -3,8 +3,8 @@ function Tester()
 close all
 
 %Choose Simulation
-simulations=["Dyn","Cheaser","EulerCheaser"];
-test=simulations(3);
+simulations=["Dyn","AttDyn","Cheaser","EulerCheaser"];
+test=simulations(2);
 
 % Simulation Time
 %Days=0.0001;
@@ -19,6 +19,18 @@ if test=="Dyn"
     u=[0;0;0];
     [t,y]=ode45(@(t,y) Sat_Translational_Dyn(t,y,u),tspan,y0);
     plot(t,y)
+end
+
+
+if test=="AttDyn"
+    tspan=linspace(1,Hours*3600,Hours*3600);
+    y0=[1;0;0;0;0;0;0];
+    u=[0.1;0;0];
+    [t,y]=ode45(@(t,y) Sat_Attitude_Dyn(t,y,u),tspan,y0);
+    plot(t, quat2eul(y(:,1:4)))
+    hold on
+    plot(t,y(:,5:7))
+    legend
 end
 
 %% Test The Cheaser
@@ -59,4 +71,4 @@ if test=="EulerCheaser"
 
 end
 
-keyboard %run dbcont to exit
+

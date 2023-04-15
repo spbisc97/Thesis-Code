@@ -4,7 +4,7 @@ function Tester()
 
     %Choose Simulation
     simulations=["Dyn","AttDyn","Cheaser","EulerCheaser"];
-    test=simulations(2);
+    test=simulations(3);
 
     % Simulation Time
     %Days=0.0001;
@@ -23,11 +23,11 @@ function Tester()
 
 
     if test=="AttDyn"
-        tspan=linspace(1,Hours*3600);
+        tspan=1:0.5:Hours*3600;
         %remember the rule for the initial rotation
         eulZYX=[0,0,0];
         q0=eul2quat(eulZYX)';
-        y0=[q0;0;0;.10];
+        y0=[q0;0.1;0;0];
         u=[0;0;0];
         [t,y]=ode45(@(t,y) Sat_Attitude_Dyn(t,y,u),tspan,y0);
         nexttile
@@ -44,9 +44,16 @@ function Tester()
     %% Test The Cheaser
     if test=="Cheaser"
         tspan=linspace(1,Hours*3600);
-        y0=[1;-3;1;0;0;0];
-        y_goal=[0;0;0;0;0;0];
-        [t_traj,y_traj]=ode45(@(t,y) Cheaser(t,y,y_goal),tspan,y0);
+        eulZYX=[0,0,0];
+        q0=eul2quat(eulZYX)';
+        y0_att=[q0;0;0;0];
+        y0_tra=[1;-3;1;0;0;0];
+
+        q_goal=eul2quat([0,0,0])';
+        y_goal_tra=[0;0;0;0;0;0];
+        y_goal_att=[0;0;0;0;0;0;0];
+
+        [t_traj,y_traj]=ode45(@(t,y) Cheaser(t,y,[y_goal_tra;y_goal_att]),tspan,[y0_tra;y0_att]);
         plot(t_traj,y_traj)
     end
 

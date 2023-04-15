@@ -4,11 +4,13 @@ function [dy,u] = Cheaser(t,y,y_goal)
         return;
 
     end
-    y=y(1:6);
+    %y=y(1:6);
 
 
-    u=get_k()*(y_goal-y);
-    dy = Sat_Translational_Dyn(t,y,u);
+    u_tranlational=get_k()*(y_goal(1:6)-y(1:6));
+    u_attitude=[0;0;0];
+    dy = [Sat_Translational_Dyn(t,y(1:6),u_tranlational);Sat_Attitude_Dyn(t,y(7:13),u_attitude)];
+
 end
 
 %%Helping Functions

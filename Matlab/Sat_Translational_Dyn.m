@@ -1,4 +1,4 @@
-function dy = Sat_Translational_Dyn(~,y,u)
+function dy = Sat_Translational_Dyn(~,y,u) %#codegen
     %Takes u directly as acc
     y=y(:);
     %set for now

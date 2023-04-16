@@ -4,7 +4,7 @@ function Tester()
 
     %Choose Simulation
     simulations=["Dyn","AttDyn","Cheaser","EulerCheaser"];
-    test=simulations(3);
+    test=simulations(4);
 
     % Simulation Time
     %Days=0.0001;
@@ -60,11 +60,20 @@ function Tester()
     if test=="EulerCheaser"
         step=0.01;
         tspan=[1:step:Hours*3600]; %#ok
-        y_traj=tspan.*zeros(6,1);
-        u_traj=tspan.*zeros(3,1);
-        y0=[1;-3;1;0;0;0];
-        y_goal=[0;0;0;0;0;0];
-        y=y0;
+        y_traj=tspan.*zeros(13,1);
+        u_traj=tspan.*zeros(6,1);
+       
+        eulZYX=[0,0,0];
+        q0=eul2quat(eulZYX)';
+        y0_att=[q0;0;0;0];
+        y0_tra=[1;-3;1;0;0;0];
+
+        q_goal=eul2quat([0,0,0])';
+        y_goal_tra=[0;0;0;0;0;0];
+        y_goal_att=[1;0;0;0;0;0;0];
+
+        y=[y0_tra;y0_att];
+        y_goal=[y_goal_tra;y_goal_att];
         y_traj(:,1)=y;
         counter=1;
         for t=tspan
@@ -79,9 +88,33 @@ function Tester()
             %t = t + step;
         end
         figure()
-        plot(tspan,y_traj)
+        nexttile
+                
+        plot(tspan,y_traj(1:3,:))
+                legend("X","Y","Z");
+
+        nexttile
+        plot(tspan,y_traj(4:6,:))        
+        legend("X","Y","Z");
+
+        nexttile
+        plot(tspan,quat2eul(y_traj(7:10,:)',"ZYX")')
+        legend("X","Y","Z");
+        nexttile
+        plot(tspan,y_traj(11:13,:))
+                legend("X","Y","Z");
+
         figure()
-        plot(tspan,u_traj)
+        nexttile
+        plot(tspan,u_traj(1:3,:))
+                legend("X","Y","Z");
+
+        nexttile
+        plot(tspan,u_traj(4:6,:))
+                legend("X","Y","Z");
+
+
+
 
 
     end

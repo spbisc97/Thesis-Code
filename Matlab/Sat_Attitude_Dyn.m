@@ -1,4 +1,4 @@
-function dy = Sat_Attitude_Dyn(~,y,u)
+function dy = Sat_Attitude_Dyn(~,y,u) %#codegen
     %SAT_ATTITUDE_DYN attitude dynamic of the satellite
     %   The output of this function will be 7 elements
     %   velocities+ quaternion
@@ -6,10 +6,10 @@ function dy = Sat_Attitude_Dyn(~,y,u)
     w=y(5:7);
     I = diag([0.0023, 0.0023, 0.0023]); % assume a uniform density and a 10cm cube shape
     invI=inv(I); %calculated a priori in future implementations
-    if ~isnumeric(y(1))
-        syms Ix Iy Iz
-        I = diag([Ix, Iy, Iz]);
-    end
+    %if ~isnumeric(y(1))
+       % syms Ix Iy Iz
+       % I = diag([Ix, Iy, Iz]);
+    %end
 
     %The gain K drives the norm of the quaternion state vector to 1.0 should εbecome nonzero.
     eps=1-sum(q.*q);
@@ -21,7 +21,7 @@ function dy = Sat_Attitude_Dyn(~,y,u)
     %cross(w,ang_momentum), always zero if inertia is diagonal
 
 
-    w_dot=[invI * (-cross(y(1:3), I * y(1:3)) + u)];
+    w_dot=[invI * (-cross(w(1:3), I * w(1:3)) + u)];
 
     dy=[q_dot;w_dot];
 end

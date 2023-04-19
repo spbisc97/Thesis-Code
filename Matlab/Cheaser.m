@@ -86,14 +86,14 @@ function [u,e]=quat_err_rate(y,y_goal)
 end
 
 function K=get_k_att()
-% y = sym('y%d', [7 1])
-% u = sym('u%d', [3 1])
-% sym_system=Sat_Attitude_Dyn(0,y,u)
-% A=jacobian(sym_system,y)
-% B=jacobian(sym_system,u)
+    % y = sym('y%d', [7 1])
+    % u = sym('u%d', [3 1])
+    % sym_system=Sat_Attitude_Dyn(0,y,u)
+    % A=jacobian(sym_system,y)
+    % B=jacobian(sym_system,u)
 
-% probaly not the right way
-% I could try to use the dynamics with euler angles
+    % probaly not the right way
+    % I could try to use the dynamics with euler angles
 
 end
 

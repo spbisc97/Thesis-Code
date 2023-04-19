@@ -97,7 +97,7 @@ function Tester()
 
         nexttile
         plot(tspan,y_traj(4:6,:))
-         label = ["X'_d","Y'_d","Z'_d"];
+        label = ["X'_d","Y'_d","Z'_d"];
         yline(y_goal(4:6),'-',label)
         legend("X'","Y'","Z'");
 

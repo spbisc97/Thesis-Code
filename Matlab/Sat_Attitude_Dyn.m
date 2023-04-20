@@ -7,8 +7,8 @@ function dy = Sat_Attitude_Dyn(~,y,u) %#codegen
     I = diag([0.0023, 0.0023, 0.0023]); % assume a uniform density and a 10cm cube shape
     invI=inv(I); %calculated a priori in future implementations
     %if ~isnumeric(y(1))
-       % syms Ix Iy Iz
-       % I = diag([Ix, Iy, Iz]);
+    % syms Ix Iy Iz
+    % I = diag([Ix, Iy, Iz]);
     %end
 
     %The gain K drives the norm of the quaternion state vector to 1.0 should εbecome nonzero.

@@ -51,7 +51,7 @@ function Tester()
 
         q_goal=eul2quat([0,0,0])';
         y_goal_tra=[0;0;0;0;0;0];
-        y_goal_att=[0;0;0;0;0;0;0];
+        y_goal_att=[q_goal;0;0;0];
 
         [t_traj,y_traj]=ode45(@(t,y) Cheaser(t,y,[y_goal_tra;y_goal_att]),tspan,[y0_tra;y0_att]);
         plot(t_traj,y_traj)
@@ -62,15 +62,15 @@ function Tester()
         tspan=[1:step:Hours*3600]; %#ok
         y_traj=tspan.*zeros(13,1);
         u_traj=tspan.*zeros(6,1);
-       
+
         eulZYX=[0,0,0];
         q0=eul2quat(eulZYX)';
         y0_att=[q0;0;0;0];
         y0_tra=[1;-3;1;0;0;0];
 
-        q_goal=eul2quat([0,0,0])';
+        q_goal=eul2quat([pi/2,0,0])';
+        y_goal_att=[q_goal;0;0;0];
         y_goal_tra=[0;0;0;0;0;0];
-        y_goal_att=[1;0;0;0;0;0;0];
 
         y=[y0_tra;y0_att];
         y_goal=[y_goal_tra;y_goal_att];
@@ -89,29 +89,55 @@ function Tester()
         end
         figure()
         nexttile
-                
+
         plot(tspan,y_traj(1:3,:))
-                legend("X","Y","Z");
+        label = {'X_d','Y_d','Z_d'};
+        yline(y_goal(1:3),'-',label)
+        legend('X','Y','Z');
+        title("Lv Lh Position")
+
 
         nexttile
-        plot(tspan,y_traj(4:6,:))        
-        legend("X","Y","Z");
+        plot(tspan,y_traj(4:6,:))
+        label = ["X'_d","Y'_d","Z'_d"];
+        yline(y_goal(4:6),'-',label)
+        legend("X'","Y'","Z'");
+        title("Lv Lh Velocity")
+
+        nexttile
 
         nexttile
         plot(tspan,quat2eul(y_traj(7:10,:)',"ZYX")')
+        label = ["X_d","Y_d","Z_d"];
+        yline(quat2eul(y_goal(7:10)'),'-',label)
         legend("X","Y","Z");
+        title("Euler attitude")
+
+
         nexttile
         plot(tspan,y_traj(11:13,:))
-                legend("X","Y","Z");
+        label = ["w_x_d","w_y_d","w_z_d"];
+        yline(y_goal(11:13),'-',label)
+        legend("w_x","w_y'","w_z'");
+        title("Angular velocity")
+
+        nexttile
+        plot(tspan,vecnorm(y_traj(7:10,:))')
+        legend("Norm");
+        title("Quaternion Norm")
 
         figure()
         nexttile
         plot(tspan,u_traj(1:3,:))
-                legend("X","Y","Z");
+        legend("X","Y","Z");
+        title("u_traj - translation")
+
 
         nexttile
         plot(tspan,u_traj(4:6,:))
-                legend("X","Y","Z");
+        legend("X","Y","Z");
+        title("u_traj - attitude")
+
 
 
 

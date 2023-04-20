@@ -25,7 +25,7 @@ function [u,e]=translation_control(y,y_goal)
 end
 
 function [u,e]=attitude_control(y,y_goal)
-    u=[0;0;0];e=[0;0;0];
+    u=[0;0;0];e=[0;0;0;0;0;0;0];
     u=quat_err_rate(y,y_goal);
 
 end

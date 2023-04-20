@@ -94,12 +94,15 @@ function Tester()
         label = {'X_d','Y_d','Z_d'};
         yline(y_goal(1:3),'-',label)
         legend('X','Y','Z');
+        title("Lv Lh Position")
+
 
         nexttile
         plot(tspan,y_traj(4:6,:))
         label = ["X'_d","Y'_d","Z'_d"];
         yline(y_goal(4:6),'-',label)
         legend("X'","Y'","Z'");
+        title("Lv Lh Velocity")
 
         nexttile
 

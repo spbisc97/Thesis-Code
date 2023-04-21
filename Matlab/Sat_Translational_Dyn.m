@@ -12,6 +12,8 @@ function dy = Sat_Translational_Dyn(~,y,u) %#codegen
     %n=sqrt(mu/rt^3);
     n= 1.2e-3;
     %eta=mu/(rc^3);
+
+    
     %Init Vars using     %F_LV_LH
     %dy(1)=y(1);
     %dy(2)=y(2)

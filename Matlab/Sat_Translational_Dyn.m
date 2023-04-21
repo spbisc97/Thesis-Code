@@ -15,9 +15,9 @@ function dy = Sat_Translational_Dyn(~,y,u) %#codegen
 
     
     %Init Vars using     %F_LV_LH
-    %dy(1)=y(1);
-    %dy(2)=y(2)
-    %dy(3)=y(3)
+    dy(1)=y(4);
+    dy(2)=y(5);
+    dy(3)=y(6);
     dy(4)=n^2*y(4)+2*n*y(5)+mu/(rt^2)-(mu/(rc^3))*(rt+y(1))+torques(1);
     dy(5)=-2*n*y(5)+n^2*y(2)-(mu/rc^3)*y(2)+torques(2);
     dy(6)=-(mu/rc^3)+torques(3);

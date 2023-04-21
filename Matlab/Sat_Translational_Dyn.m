@@ -1,27 +1,24 @@
 function dy = Sat_Translational_Dyn(~,y,u) %#codegen
     %Takes u directly as acc
+    torques=u(:);
     y=y(:);
+    %n_dot=0;
+    dy=y;
     %set for now
-    %mu=3.986004418*10^14
-    %r= 1e7 m  %~GPS are 2,66e7 m
-    %n=sqrt(mu/r^3);
-    n= 6.3135e-04;
+    mu=3.986004418*10^14;
+    rt= 6.6*1e6 ;%m r of the targhet
+    rc=norm([rt+y(1);y(2);y(3)]);
+    %~GPS are 2,66e7 m
+    %n=sqrt(mu/rt^3);
+    n= 1.2e-3;
+    %eta=mu/(rc^3);
+
+    
     %Init Vars using     %F_LV_LH
-    B=[ 0 0 0;...
-        0 0 0;...
-        0 0 0;...
-        1 0 0;...
-        0 1 0;...
-        0 0 1;];
-    A=[ 0 0 0 1 0 0 ;...
-        0 0 0 0 1 0;...
-        0 0 0 0 0 1;...
-        3*n^2 0 0 0 2*n 0;...
-        0 0 0 -2*n 0 0;...
-        0 0 -n^2 0 0 0;...
-        ];
-
-
-
-    dy=A*y+B*u(:);
+    dy(1)=y(4);
+    dy(2)=y(5);
+    dy(3)=y(6);
+    dy(4)=n^2*y(4)+2*n*y(5)+mu/(rt^2)-(mu/(rc^3))*(rt+y(1))+torques(1);
+    dy(5)=-2*n*y(5)+n^2*y(2)-(mu/rc^3)*y(2)+torques(2);
+    dy(6)=-(mu/rc^3)+torques(3);
 end

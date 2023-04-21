@@ -4,7 +4,7 @@ function Tester()
 
     %Choose Simulation
     simulations=["Dyn","AttDyn","Cheaser","EulerCheaser"];
-    test=simulations(4);
+    test=simulations(1);
 
     % Simulation Time
     %Days=0.0001;
@@ -15,7 +15,7 @@ function Tester()
 
     if test=="Dyn"
         tspan=linspace(1,Hours*3600);
-        y0=[0;0;1;0;0;0];
+        y0=[0;0;0;0;0;0];
         u=[0;0;0];
         [t,y]=ode45(@(t,y) Sat_Translational_Dyn(t,y,u),tspan,y0);
         plot(t,y)

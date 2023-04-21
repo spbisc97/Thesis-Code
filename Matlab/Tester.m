@@ -4,7 +4,7 @@ function Tester()
 
     %Choose Simulation
     simulations=["Dyn","AttDyn","Cheaser","EulerCheaser"];
-    test=simulations(1);
+    test=simulations(4);
 
     % Simulation Time
     %Days=0.0001;

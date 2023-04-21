@@ -1,11 +1,18 @@
 function dy = Sat_Translational_Dyn(~,y,u) %#codegen
     %Takes u directly as acc
     y=y(:);
+    %n_dot=0;
+    %dy=y;
     %set for now
-    %mu=3.986004418*10^14
-    %r= 1e7 m  %~GPS are 2,66e7 m
-    %n=sqrt(mu/r^3);
-    n= 6.3135e-04;
+    %mu=3.986004418*10^14;
+    %rt= 6.6*1e6 ;%m r of the targhet
+    %rc=norm([rt+y(1);y(2);y(3)]);
+    %~GPS are 2,66e7 m
+    %n=sqrt(mu/rt^3);
+    n= 1.2e-3;
+    %eta=mu/(rc^3);
+
+    
     %Init Vars using     %F_LV_LH
     B=[ 0 0 0;...
         0 0 0;...

@@ -28,7 +28,7 @@ function dy = Sat_Attitude_Dyn(~,y,u) %#codegen
     %cross(w,ang_momentum), always zero if inertia is diagonal
 
 
-    w_dot=[invI * (-cross(w(1:3), I * w(1:3)) + u)];
+    w_dot=[invI * (-cross(w(1:3), I * w(1:3)) + u)]; %#ok
 
     m_dot=-sum(abs(u(:)))/(g*parameters.Isp);
 
@@ -36,9 +36,9 @@ function dy = Sat_Attitude_Dyn(~,y,u) %#codegen
     dy=[q_dot;w_dot;m_dot];
 end
 
-function mat=crossmat(a)
-    mat=[0,-a(3),a(2);a(3),0,-a(1);-a(2),a(1),0];
-end
+% function mat=crossmat(a)
+%     mat=[0,-a(3),a(2);a(3),0,-a(1);-a(2),a(1),0];
+% end
 
 function mat=omega(w)
     %mat=[0,-p,-q,-r;p,0,r,-q;q,-r,0,p;r,q,-p,0];

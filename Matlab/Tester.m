@@ -20,10 +20,10 @@ function Tester(test_n)
         tspan=linspace(1,Hours*3600);
         x0=[0;0;0];
         v0=[0;0;0];
-        M0=[10];
-        u=[1;1;1];
+        M0=10;
+        u=@(t) 0.1*[sin(t);sin(t);sin(t)];
         y0=[x0;v0;M0];
-        [t,y]=ode45(@(t,y) Sat_Translational_Dyn(t,y,[sin(t);sin(t);sin(t)]),tspan,y0);
+        [t,y]=ode45(@(t,y) Sat_Translational_Dyn(t,y,u(t)),tspan,y0);
         plot(t,y)
     end
 
@@ -34,7 +34,7 @@ function Tester(test_n)
         eulZYX=[0,0,0];
         q0=eul2quat(eulZYX)';
         va0=[0;0;0];
-        M0=[10];
+        M0=10;
 
         y0=[q0;va0;M0];
 
@@ -60,7 +60,7 @@ function Tester(test_n)
         q0=eul2quat(eulZYX)';
         y0_att=[q0;0;0;0];
         y0_tra=[1;-3;1;0;0;0];
-        y0_mass=[10];
+        y0_mass=10;
 
         q_goal=eul2quat([pi/2,0,0])';
         y_goal_att=[q_goal;0;0;0];
@@ -84,7 +84,7 @@ function Tester(test_n)
         q0=eul2quat(eulZYX)';
         y0_att=[q0;0;0;0];
         y0_tra=[1;-3;1;0;0;0];
-        y0_mass=[10];
+        y0_mass=10;
 
         q_goal=eul2quat([pi/2,0,0])';
         y_goal_att=[q_goal;0;0;0];

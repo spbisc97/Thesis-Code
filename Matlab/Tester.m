@@ -78,6 +78,7 @@ function Tester(test_n)
         step=0.01;
         tspan=[1:step:Hours*3600]; %#ok
         y_traj=tspan.*zeros(14,1);
+        y_goal_traj=tspan.*zeros(14,1);
         u_traj=tspan.*zeros(6,1);
 
         eulZYX=[0,0,0];
@@ -97,80 +98,155 @@ function Tester(test_n)
         counter=1;
         for t=tspan
 
+            y_goal_traj(:,counter)=y_goal;
             [dy,u]=Cheaser(t,y,y_goal);
             y = y + step*dy;
 
             y_traj(:,counter)=y;
             u_traj(:,counter)=u;
+            
 
             counter=counter+1;
             %t = t + step;
         end
+        plotter(tspan',y_traj',y_goal_traj',u_traj')
+
+
+    end
+end
+
+
+    %% Plotter
+    function plotter(t,y,y_goal,u)
+        %we will use vertical vectors
+
+        translation_plotter(t,y(:,1:6),y_goal(:,1:6))        
+
+        euler_y=[quat2eul(y(:,7:10),"ZYX"),y(:,11:13)];
+        euler_y_goal=[quat2eul(y_goal(:,7:10),"ZYX"),y_goal(:,11:13)];
+        attitude_plotter(t,euler_y,euler_y_goal)       
+
         figure()
-        tiledlayout(3, 3)
-        nexttile
-
-        plot(tspan,y_traj(1:3,:))
-        label = {'X_d','Y_d','Z_d'};
-        yline(y_goal(1:3),'-',label)
-        legend('X','Y','Z');
-        title("Lv Lh Position")
-
 
         nexttile
-        plot(tspan,y_traj(4:6,:))
-        label = ["X'_d","Y'_d","Z'_d"];
-        yline(y_goal(4:6),'-',label)
-        legend("X'","Y'","Z'");
-        title("Lv Lh Velocity")
-
-        nexttile
-
-        nexttile
-        plot(tspan,quat2eul(y_traj(7:10,:)',"ZYX")')
-        label = ["X_d","Y_d","Z_d"];
-        yline(quat2eul(y_goal(7:10)'),'-',label)
-        legend("X","Y","Z");
-        title("Euler attitude")
-
-
-        nexttile
-        plot(tspan,y_traj(11:13,:))
-        label = ["w_x_d","w_y_d","w_z_d"];
-        yline(y_goal(11:13),'-',label)
-        legend("w_x","w_y'","w_z'");
-        title("Angular velocity")
-
-        nexttile
-        plot(tspan,vecnorm(y_traj(7:10,:))')
+        plot(t,vecnorm(y(:,7:10)')')
         legend("Norm");
         title("Quaternion Norm")
 
         nexttile
-        plot(tspan,y_traj(14,:))
+        plot(t,y(:,14))
         legend("Mass")
         title("Vehicle Mass")
 
 
         figure()
         nexttile
-        plot(tspan,u_traj(1:3,:))
+        plot(t,u(:,1:3))
         legend("X","Y","Z");
         title("u_traj - translation")
 
 
         nexttile
-        plot(tspan,u_traj(4:6,:))
+        plot(t,u(:,4:6))
         legend("X","Y","Z");
         title("u_traj - attitude")
 
         
 
 
+    end
+
+    function translation_plotter(tspan,y_traj,y_goal_traj)
+        %plot Translation
+        figure()
+        tiledlayout(2, 3)
+        
+        nexttile
+        plot(tspan,y_traj(:,1))
+        hold on
+        plot(tspan,y_goal_traj(:,1),'--')
+        legend('X','X_d');
+        title("Lv Lh Position")
+        nexttile
+        plot(tspan,y_traj(:,2))
+        hold on
+        plot(tspan,y_goal_traj(:,2),'--')
+        legend('Y','Y_d');
+        title("Lv Lh Position")
+        nexttile
+        plot(tspan,y_traj(:,3))
+        hold on
+        plot(tspan,y_goal_traj(:,3),'--')
+        legend('Z','Z_d');
+        title("Lv Lh Position")
 
 
+        nexttile
+        plot(tspan,y_traj(:,4))
+        hold on
+        plot(y_goal_traj(:,4),'--')
+        legend("X'","X'_d");
+        title("Lv Lh Velocity")
 
+        nexttile
+        plot(tspan,y_traj(:,5))
+        hold on
+        plot(y_goal_traj(:,5),'--')
+        legend("Y'","Y'_d");
+        title("Lv Lh Velocity")
+
+        nexttile
+        plot(tspan,y_traj(:,6))
+        hold on
+        plot(y_goal_traj(:,6),'--')
+        legend("Z'","Z'_d");
+        title("Lv Lh Velocity")
 
     end
 
 
+    function attitude_plotter(tspan,y,y_goal)
+        %plot attitude with euler
+        figure()
+        nexttile
+        plot(tspan,y(:,1))
+        hold on
+        plot(tspan,y_goal(:,1)','--');
+        legend("X","X_d");
+        title("Euler attitude")
+        nexttile
+        plot(tspan,y(:,2))
+        hold on
+        plot(tspan,y_goal(:,2)','--');
+        legend("Y","Y_d");
+        title("Euler attitude")
+        nexttile
+        plot(tspan,y(:,3))
+        hold on
+        plot(tspan,y_goal(:,3)','--');
+        legend("Z","Z_d");
+        title("Euler attitude")
+
+
+        nexttile
+        plot(tspan,y(:,4))
+        hold on
+        plot(tspan,y_goal(:,4),'--')
+        legend("w_x","w_x_d");
+        title("Angular velocity")
+        nexttile
+
+        plot(tspan,y(:,5))
+        hold on
+        plot(tspan,y_goal(:,5),'--')
+        legend("w_y'","w_y_d");
+        title("Angular velocity")
+
+        nexttile
+        plot(tspan,y(:,6))
+        hold on
+        plot(tspan,y_goal(:,6),'--')
+        legend("w_z'","w_z_d");
+        title("Angular velocity")
+    
+    end

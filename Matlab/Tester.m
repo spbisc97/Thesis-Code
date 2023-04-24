@@ -11,7 +11,7 @@ function Tester(test_n)
 
     % Simulation Time
     %Days=0.0001;
-    Hours=0.01;%24*Days;
+    Hours=1;%24*Days;
 
 
     %% Test The Satellites Dynamics
@@ -55,14 +55,15 @@ function Tester(test_n)
 
     %% Test The Cheaser
     if test=="Cheaser"
-        tspan=linspace(1,Hours*3600);
+        step=1;
+        tspan=1:step:Hours*3600;
         eulZYX=[0,0,0];
         q0=eul2quat(eulZYX)';
         y0_att=[q0;0;0;0];
-        y0_tra=[1;-3;1;0;0;0];
+        y0_tra=[0;0;0;0;0;0];
         y0_mass=10;
 
-        q_goal=eul2quat([pi/2,0,0])';
+        q_goal=eul2quat([0,0,0])';
         y_goal_att=[q_goal;0;0;0];
         y_goal_tra=[0;0;0;0;0;0];
         y_goal_mass=y0_mass;
@@ -71,11 +72,19 @@ function Tester(test_n)
         y_goal=[y_goal_tra;y_goal_att;y_goal_mass];
 
         [t_traj,y_traj]=ode45(@(t,y) Cheaser(t,y,y_goal),tspan,y0);
-        plot(t_traj,y_traj)
+        
+        %reconstruct output from ode45
+        for i=1:length(t_traj)
+            [~,u]=Cheaser(t_traj(i),y_traj(i,:),y_goal);
+            u_traj(i,:)=u;
+        end
+        size(u_traj)
+        size(t_traj)
+        plotter(t_traj,y_traj,y_goal'.*ones(length(t_traj),1),u_traj)
     end
 
     if test=="EulerCheaser"
-        step=0.01;
+        step=1;
         tspan=[1:step:Hours*3600]; %#ok
         y_traj=tspan.*zeros(14,1);
         y_goal_traj=tspan.*zeros(14,1);
@@ -119,6 +128,7 @@ end
     %% Plotter
     function plotter(t,y,y_goal,u)
         %we will use vertical vectors
+        
 
         translation_plotter(t,y(:,1:6),y_goal(:,1:6))        
 
@@ -138,7 +148,11 @@ end
         legend("Mass")
         title("Vehicle Mass")
 
-
+        if exist('u','var')
+            u_plotter(t,u)
+        end
+    end
+    function u_plotter(t,u)
         figure()
         nexttile
         plot(t,u(:,1:3))
@@ -150,10 +164,6 @@ end
         plot(t,u(:,4:6))
         legend("X","Y","Z");
         title("u_traj - attitude")
-
-        
-
-
     end
 
     function translation_plotter(tspan,y_traj,y_goal_traj)

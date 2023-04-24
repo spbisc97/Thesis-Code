@@ -18,9 +18,12 @@ function Tester(test_n)
 
     if test=="Dyn"
         tspan=linspace(1,Hours*3600);
-        y0=[0;0;0;0;0;0];
-        u=[0;0;0];
-        [t,y]=ode45(@(t,y) Sat_Translational_Dyn(t,y,u),tspan,y0);
+        x0=[0;0;0];
+        v0=[0;0;0];
+        M0=[10];
+        u=[1;1;1];
+        y0=[x0;v0;M0];
+        [t,y]=ode45(@(t,y) Sat_Translational_Dyn(t,y,[sin(t);sin(t);sin(t)]),tspan,y0);
         plot(t,y)
     end
 
@@ -30,9 +33,13 @@ function Tester(test_n)
         %remember the rule for the initial rotation
         eulZYX=[0,0,0];
         q0=eul2quat(eulZYX)';
-        y0=[q0;0.1;0;0];
-        u=[0;0;0];
-        [t,y]=ode45(@(t,y) Sat_Attitude_Dyn(t,y,u),tspan,y0);
+        va0=[0;0;0];
+        M0=[10];
+
+        y0=[q0;va0;M0];
+
+        u=@(t) 0.1*[sin(t);sin(t);sin(t)];
+        [t,y]=ode45(@(t,y) Sat_Attitude_Dyn(t,y,u(t)),tspan,y0);
         nexttile
         plot(t, quat2eul(y(:,1:4),"ZYX"))
         legend
@@ -42,6 +49,8 @@ function Tester(test_n)
         nexttile
         plot(t,y(:,5:7))
         legend
+        nexttile
+        plot(t,y(:,8))
     end
 
     %% Test The Cheaser
@@ -51,32 +60,39 @@ function Tester(test_n)
         q0=eul2quat(eulZYX)';
         y0_att=[q0;0;0;0];
         y0_tra=[1;-3;1;0;0;0];
+        y0_mass=[10];
 
-        q_goal=eul2quat([0,0,0])';
-        y_goal_tra=[0;0;0;0;0;0];
+        q_goal=eul2quat([pi/2,0,0])';
         y_goal_att=[q_goal;0;0;0];
+        y_goal_tra=[0;0;0;0;0;0];
+        y_goal_mass=y0_mass;
 
-        [t_traj,y_traj]=ode45(@(t,y) Cheaser(t,y,[y_goal_tra;y_goal_att]),tspan,[y0_tra;y0_att]);
+        y0=[y0_tra;y0_att;y0_mass];
+        y_goal=[y_goal_tra;y_goal_att;y_goal_mass];
+
+        [t_traj,y_traj]=ode45(@(t,y) Cheaser(t,y,y_goal),tspan,y0);
         plot(t_traj,y_traj)
     end
 
     if test=="EulerCheaser"
         step=0.01;
         tspan=[1:step:Hours*3600]; %#ok
-        y_traj=tspan.*zeros(13,1);
+        y_traj=tspan.*zeros(14,1);
         u_traj=tspan.*zeros(6,1);
 
         eulZYX=[0,0,0];
         q0=eul2quat(eulZYX)';
         y0_att=[q0;0;0;0];
         y0_tra=[1;-3;1;0;0;0];
+        y0_mass=[10];
 
         q_goal=eul2quat([pi/2,0,0])';
         y_goal_att=[q_goal;0;0;0];
         y_goal_tra=[0;0;0;0;0;0];
+        y_goal_mass=y0_mass;
 
-        y=[y0_tra;y0_att];
-        y_goal=[y_goal_tra;y_goal_att];
+        y=[y0_tra;y0_att;y0_mass];
+        y_goal=[y_goal_tra;y_goal_att;y_goal_mass];
         y_traj(:,1)=y;
         counter=1;
         for t=tspan
@@ -91,6 +107,7 @@ function Tester(test_n)
             %t = t + step;
         end
         figure()
+        tiledlayout(3, 3)
         nexttile
 
         plot(tspan,y_traj(1:3,:))
@@ -129,6 +146,12 @@ function Tester(test_n)
         legend("Norm");
         title("Quaternion Norm")
 
+        nexttile
+        plot(tspan,y_traj(14,:))
+        legend("Mass")
+        title("Vehicle Mass")
+
+
         figure()
         nexttile
         plot(tspan,u_traj(1:3,:))
@@ -140,6 +163,8 @@ function Tester(test_n)
         plot(tspan,u_traj(4:6,:))
         legend("X","Y","Z");
         title("u_traj - attitude")
+
+        
 
 
 

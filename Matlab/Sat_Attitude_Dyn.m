@@ -1,7 +1,14 @@
 function dy = Sat_Attitude_Dyn(~,y,u) %#codegen
     %SAT_ATTITUDE_DYN attitude dynamic of the satellite
     %   The output of this function will be 7 elements
-    %   velocities+ quaternion
+    %   quaternion+velocities
+
+
+    parameters.Isp=2250;
+    parameters.Tmax=1.05e-7;
+    g=9.81;
+
+
     q=y(1:4);
     w=y(5:7);
     I = diag([0.0023, 0.0023, 0.0023]); % assume a uniform density and a 10cm cube shape
@@ -23,7 +30,10 @@ function dy = Sat_Attitude_Dyn(~,y,u) %#codegen
 
     w_dot=[invI * (-cross(w(1:3), I * w(1:3)) + u)];
 
-    dy=[q_dot;w_dot];
+    m_dot=-sum(abs(u(:)))/(g*parameters.Isp);
+
+
+    dy=[q_dot;w_dot;m_dot];
 end
 
 function mat=crossmat(a)

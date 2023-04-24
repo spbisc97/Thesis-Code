@@ -5,17 +5,17 @@ function [dy,u] = Cheaser(t,y,y_goal) %#codegen
         return;
     end
 
-    mass=y(14);
-    y=y(1:13);
+    y=y(:);
+
+
     
 
     u_tranlational=translation_control(y(1:6),y_goal(1:6));%later mass will have to be passed
     u_attitude=attitude_control(y(7:13),y_goal(7:13));%later mass will have to be passed
 
-    dy_tra = Sat_Translational_Dyn(t,[y(1:6);mass],u_tranlational);
-    dy_att= Sat_Attitude_Dyn(t,y(7:13),u_attitude);
-    dy_mass=dy_att(8)+dy_tra(7);
-    dy=[dy_tra(1:6);dy_att(1:7);dy_mass];
+    
+    dy=Sat_dyn(t,y,u_tranlational,u_attitude);
+   
     u=[u_tranlational;u_attitude];
 end
 

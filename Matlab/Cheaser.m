@@ -30,7 +30,8 @@ function [u,e]=translation_control(y,y_goal)
 end
 
 function [u,e]=attitude_control(y,y_goal)
-    u=[0;0;0];e=[0;0;0;0;0;0;0];
+    %u=[0;0;0];
+    e=[0;0;0;0;0;0;0];
     u=quat_err_rate(y,y_goal);
 
 end
@@ -90,18 +91,6 @@ function [u,e]=quat_err_rate(y,y_goal)
     u=u/100;
 end
 
-function K=get_k_att()
-    % y = sym('y%d', [7 1])
-    % u = sym('u%d', [3 1])
-    % sym_system=Sat_Attitude_Dyn(0,y,u)
-    % A=jacobian(sym_system,y)
-    % B=jacobian(sym_system,u)
-
-    % probaly not the right way
-    % I could try to use the dynamics with euler angles
-
-end
-
 function mat=omega(q)
     % mat for crossproduct btw quaternions
     % q(1) is the scalar part
@@ -115,11 +104,6 @@ end
 function e=quat_tracking_error(q,q_d)
     q_d_inv=quatinv(q_d')';
     e=omega(q_d_inv)*q;
-
-    %e=[0;0;0;0];
-    %e(1)=q(1)*q_d(1)+q(2:4)'*q_d(2:4);
-    %e(2:4)=q_d(1)*q(2:4)-q(1)*q_d(2:4)+cross(q_d(2:4),q(2:4));
-
     e=e(:);
     if norm(e)>1.1
         disp("error norm error")

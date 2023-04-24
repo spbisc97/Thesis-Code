@@ -14,9 +14,8 @@ function [dy,u] = Cheaser(t,y,y_goal) %#codegen
     u_attitude=attitude_control(y(7:13),y_goal(7:13));%later mass will have to be passed
 
     
-    dy=Sat_dyn(t,y,u_tranlational,u_attitude);
-   
-    u=[u_tranlational;u_attitude];
+    [dy,u]=Sat_dyn(t,y,u_tranlational,u_attitude);
+    %u=[u_tranlational;u_attitude];
 end
 
 

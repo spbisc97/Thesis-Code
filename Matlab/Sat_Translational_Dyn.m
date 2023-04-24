@@ -1,11 +1,12 @@
-function dy = Sat_Translational_Dyn(~,y,u) %#codegen
+function [dy,u] = Sat_Translational_Dyn(~,y,u) %#codegen
 
     parameters.Isp=2250;
     parameters.Tmax=1.05e-7;
     g=9.81;
 
     %Takes u directly as acc
-    torques=u(:);
+    u=min(parameters.Tmax,max(-parameters.Tmax,u(:)));
+    torques=u;
     y=y(:);
     %n_dot=0;
     dy=y;

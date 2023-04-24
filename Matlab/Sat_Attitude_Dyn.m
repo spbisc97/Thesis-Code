@@ -1,4 +1,4 @@
-function dy = Sat_Attitude_Dyn(~,y,u) %#codegen
+function [dy,u] = Sat_Attitude_Dyn(~,y,u) %#codegen
     %SAT_ATTITUDE_DYN attitude dynamic of the satellite
     %   The output of this function will be 7 elements
     %   quaternion+velocities
@@ -7,7 +7,8 @@ function dy = Sat_Attitude_Dyn(~,y,u) %#codegen
     parameters.Isp=2250;
     parameters.Tmax=1.05e-7;
     g=9.81;
-
+    u=min(parameters.Tmax,max(-parameters.Tmax,u(:)));
+    torques=u;
 
     q=y(1:4);
     w=y(5:7);
@@ -28,7 +29,7 @@ function dy = Sat_Attitude_Dyn(~,y,u) %#codegen
     %cross(w,ang_momentum), always zero if inertia is diagonal
 
 
-    w_dot=[invI * (-cross(w(1:3), I * w(1:3)) + u)]; %#ok
+    w_dot=[invI * (-cross(w(1:3), I * w(1:3)) + torques)]; %#ok
 
     m_dot=-sum(abs(u(:)))/(g*parameters.Isp);
 

@@ -10,21 +10,21 @@ function Tester(test_n)
     test=simulations(test_n);
 
     % Simulation Time
-    %Days=0.0001;
-    Hours=1;%24*Days;
+    Days=10;
+    Hours=24*Days;
 
 
     %% Test The Satellites Dynamics
 
     if test=="Dyn"
-        tspan=linspace(1,Hours*3600);
-        x0=[0;0;0];
+        tspan=1:0.1:Hours*3600;
+        x0=[1;0;0];
         v0=[0;0;0];
         M0=10;
-        u=@(t) 0.1*[sin(t);sin(t);sin(t)];
+        u=@(t) 0.01*[sin(100*t),0,0];
         y0=[x0;v0;M0];
-        [t,y]=ode45(@(t,y) Sat_Translational_Dyn(t,y,u(t)),tspan,y0);
-        plot(t,y)
+        [t,y]=ode45(@(t,y) Sat_Translational_Dyn(t,y,u(0)),tspan,y0);
+        translation_plotter(t,y,[0;0;0;0;0;0]'.*ones(length(t),1));
     end
 
 
@@ -55,12 +55,12 @@ function Tester(test_n)
 
     %% Test The Cheaser
     if test=="Cheaser"
-        step=1;
+        step=10;
         tspan=1:step:Hours*3600;
         eulZYX=[0,0,0];
         q0=eul2quat(eulZYX)';
         y0_att=[q0;0;0;0];
-        y0_tra=[0;0;0;0;0;0];
+        y0_tra=[1;0;0;0;0;0];
         y0_mass=10;
 
         q_goal=eul2quat([0,0,0])';
@@ -78,9 +78,7 @@ function Tester(test_n)
             [~,u]=Cheaser(t_traj(i),y_traj(i,:),y_goal);
             u_traj(i,:)=u;
         end
-        size(u_traj)
-        size(t_traj)
-        plotter(t_traj,y_traj,y_goal'.*ones(length(t_traj),1),u_traj)
+        plotter(t_traj,y_traj,y_goal'.*ones(length(t_traj),1),u_traj);
     end
 
     if test=="EulerCheaser"
@@ -93,10 +91,10 @@ function Tester(test_n)
         eulZYX=[0,0,0];
         q0=eul2quat(eulZYX)';
         y0_att=[q0;0;0;0];
-        y0_tra=[1;-3;1;0;0;0];
+        y0_tra=[1;0;0;0;0;0];
         y0_mass=10;
 
-        q_goal=eul2quat([pi/2,0,0])';
+        q_goal=eul2quat([0,0,0])';
         y_goal_att=[q_goal;0;0;0];
         y_goal_tra=[0;0;0;0;0;0];
         y_goal_mass=y0_mass;
@@ -130,45 +128,48 @@ end
         %we will use vertical vectors
         
 
-        translation_plotter(t,y(:,1:6),y_goal(:,1:6))        
+        translation_plotter(t,y(:,1:6),y_goal(:,1:6))  ;      
 
         euler_y=[quat2eul(y(:,7:10),"ZYX"),y(:,11:13)];
         euler_y_goal=[quat2eul(y_goal(:,7:10),"ZYX"),y_goal(:,11:13)];
-        attitude_plotter(t,euler_y,euler_y_goal)       
+        attitude_plotter(t,euler_y,euler_y_goal) ;      
 
-        figure()
+        fig=figure();
+        fig.Name="Norm&Norm";
 
         nexttile
         plot(t,vecnorm(y(:,7:10)')')
         legend("Norm");
-        title("Quaternion Norm")
+        title("Quaternion Norm");
 
         nexttile
-        plot(t,y(:,14))
-        legend("Mass")
-        title("Vehicle Mass")
+        plot(t,y(:,14));
+        legend("Mass");
+        title("Vehicle Mass");
 
-        if exist('u','var')
-            u_plotter(t,u)
+        if exist('u','var');
+            u_plotter(t,u);
         end
     end
-    function u_plotter(t,u)
-        figure()
-        nexttile
-        plot(t,u(:,1:3))
+    function fig=u_plotter(t,u)
+        fig=figure();
+        fig.Name="Control";
+        nexttile;
+        plot(t,u(:,1:3));
         legend("X","Y","Z");
-        title("u_traj - translation")
+        title("u_traj - translation");
 
 
-        nexttile
-        plot(t,u(:,4:6))
+        nexttile;
+        plot(t,u(:,4:6));
         legend("X","Y","Z");
-        title("u_traj - attitude")
+        title("u_traj - attitude");
     end
 
-    function translation_plotter(tspan,y_traj,y_goal_traj)
+    function fig=translation_plotter(tspan,y_traj,y_goal_traj)
         %plot Translation
-        figure()
+        fig=figure();
+        fig.Name="Translation";
         tiledlayout(2, 3)
         
         nexttile
@@ -215,9 +216,10 @@ end
     end
 
 
-    function attitude_plotter(tspan,y,y_goal)
+    function fig=attitude_plotter(tspan,y,y_goal)
         %plot attitude with euler
-        figure()
+        fig=figure();
+        fig.Name="Attitude";
         nexttile
         plot(tspan,y(:,1))
         hold on

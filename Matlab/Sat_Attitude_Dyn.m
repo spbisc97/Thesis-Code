@@ -23,9 +23,9 @@ function [dy,u] = Sat_Attitude_Dyn(~,y,u) %#codegen
     %end
 
     %The gain K drives the norm of the quaternion state vector to 1.0 should εbecome nonzero.
-    eps=1-sum(q.*q);
+    ep=1-sum(q.*q);
     K=0.1;%*norm(q);
-    q_dot = 0.5 * omega(w)*q + K*eps*q;
+    q_dot = 0.5 * omega(w)*q + K*ep*q;
 
     %Euler's equation of motion
     %(-cross(y(1:3), I * y(1:3))  from transport theorem

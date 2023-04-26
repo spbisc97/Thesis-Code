@@ -77,7 +77,7 @@ function [A,B]=get_AB_tra(y,u)
 
 end
 
-end
+
 
 function Q=get_Q_tra()
     Q=diag([1e1,1e1,1e1,0.1,0.1,0.1]*1e-3);

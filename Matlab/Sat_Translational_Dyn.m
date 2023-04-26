@@ -19,7 +19,7 @@ function [dy,u] = Sat_Translational_Dyn(~,y,u) %#codegen
     %syms mu
     rt= 6.6*1e6 ;%m r of the targhet
     %syms rt
-    rc=norm([rt+y(1);y(2);y(3)]);
+    %rc=norm([rt+y(1);y(2);y(3)]);
     rc=((rt+y(1))^2+y(2)^2+y(3)^2)^(1/2);
     %syms rc
     %~GPS are 2,66e7 m

@@ -41,22 +41,20 @@ function [u,e]=lqr_control_tra(y,y_goal)
 end
 
 function K=get_k_tra(y,u)
-    [A,B]=get_AB_tra(y,u);
-    K=lqr(A,B,get_Q_tra(),get_R_tra());
+    %[A,B]=get_AB_tra(y,u);
+    %K=simple_lqr(A,B,get_Q_tra(),get_R_tra());
     %pause
-%    K=[...
-%    99.9999446137011        -0.107264213962748      3.44547485353584e-14           89.498578587015     -8.00054467120503e-15      2.95056468803997e-14;...
-%    0.107264213962668          99.9999446137011     -6.04285394796429e-14       2.1316282072803e-14           89.498578587015     -9.52252925846075e-15;...
-% -1.4019034670654e-14      7.00884783457919e-14                       100     -9.53985852357144e-15      7.69306494634369e-14          89.4985478828506];
+    K=[...
+    1.85358394972458e-06     -2.06588662965874e-08      5.18850602740542e-21     0.000268762966446855      0.000771640310255927      2.03407214393561e-17
+    7.98243596633682e-06     -4.42416220807265e-08     -1.14789168443559e-20      7.71640310255628e-05       0.00334912246918991      6.70750654550444e-20
+    1.57635526707932e-19     -5.87692317116124e-22      8.68049091965597e-10      3.29266399252586e-16      7.33165003003798e-17      0.000263522147387399];
 end
 
 function [A,B]=get_AB_tra(y,u)
     %Init Vars using     %F_LV_LH
-    parameters=Sat_params();
-    mu=parameters.mu;
-    rt= parameters.rt ;%m r of the targhet
-    n=parameters.n;
-    y(7)=10;
+    p=Sat_params();
+    n=sqrt(p.mu/p.rt^3);
+    total_mass=10+p.mass;
 
     A = [0, 0, 0, 1, 0, 0 %
         0, 0, 0, 0, 1, 0 %
@@ -68,9 +66,9 @@ function [A,B]=get_AB_tra(y,u)
     B = [0, 0, 0
         0, 0, 0
         0, 0, 0
-        1 / (parameters.mass + y(7)), 0, 0
-        0, 1 / (parameters.mass + y(7)), 0
-        0, 0, 1 / (parameters.mass + y(7))];
+        1 / total_mass, 0, 0
+        0, 1 / total_mass, 0
+        0, 0, 1 / total_mass];
 
     A = A(1:6, 1:6);
     B = B(1:6, :);
@@ -80,10 +78,10 @@ end
 
 
 function Q=get_Q_tra()
-    Q=diag([1e1,1e1,1e1,0.1,0.1,0.1]*1e-3);
+    Q=diag([3e1,2e1,1e1,0.1,0.1,0.1]*1e-2);
 end
 function R=get_R_tra()
-    R=diag([1,1,1])*1e14;
+    R=diag([1e1,1e2,1])*1e12;
 end
 function Return_lqr_values()
     [A,B]=get_AB_tra([0;0;0;0;0;0;10],[0;0;0]);

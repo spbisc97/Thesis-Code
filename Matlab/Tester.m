@@ -1,7 +1,8 @@
 function Tester(test_n)
     %% Test file for the functions
     close all
-
+    addpath('Auxiliary');
+    tic
     %Choose Simulation
     simulations=["Dyn","AttDyn","Cheaser","EulerCheaser"];
     if ~exist('test_n','var') || ~isnumeric(test_n)
@@ -24,6 +25,7 @@ function Tester(test_n)
         u=@(t) 0.01*[sin(100*t),0,0];
         y0=[x0;v0;M0];
         [t,y]=ode45(@(t,y) Sat_Translational_Dyn(t,y,u(0)),tspan,y0);
+        toc
         translation_plotter(t,y,[0;0;0;0;0;0]'.*ones(length(t),1));
     end
 
@@ -40,17 +42,9 @@ function Tester(test_n)
 
         u=@(t) 0.1*[sin(t);sin(t);sin(t)];
         [t,y]=ode45(@(t,y) Sat_Attitude_Dyn(t,y,u(t)),tspan,y0);
-        nexttile
-        plot(t, quat2eul(y(:,1:4),"ZYX"))
-        legend
-        nexttile
-        plot(t, vecnorm(y(:,1:4)')')
-        legend
-        nexttile
-        plot(t,y(:,5:7))
-        legend
-        nexttile
-        plot(t,y(:,8))
+        toc
+        attitude_plotter(t,y,[1;0;0;0;0;0;0]'.*ones(length(t),1));
+
     end
 
     %% Test The Cheaser
@@ -60,7 +54,7 @@ function Tester(test_n)
         eulZYX=[0,0,0];
         q0=eul2quat(eulZYX)';
         y0_att=[q0;0;0;0];
-        y0_tra=[0;0;0;0;0;0];
+        y0_tra=[1;0;0;0;0;0];
         y0_mass=10;
 
         q_goal=eul2quat([0,0,0])';
@@ -72,6 +66,7 @@ function Tester(test_n)
         y_goal=[y_goal_tra;y_goal_att;y_goal_mass];
 
         [t_traj,y_traj]=ode45(@(t,y) Cheaser(t,y,y_goal),tspan,y0);
+        toc
         
         %reconstruct output from ode45
         u_traj=t_traj.*zeros(1,6);
@@ -117,6 +112,7 @@ function Tester(test_n)
             counter=counter+1;
             %t = t + step;
         end
+        toc
         plotter(tspan',y_traj',y_goal_traj',u_traj')
 
 

@@ -10,7 +10,7 @@ function Tester(test_n)
     test=simulations(test_n);
 
     % Simulation Time
-    Days=10;
+    Days=1;
     Hours=24*Days;
 
 
@@ -60,7 +60,7 @@ function Tester(test_n)
         eulZYX=[0,0,0];
         q0=eul2quat(eulZYX)';
         y0_att=[q0;0;0;0];
-        y0_tra=[1;0;0;0;0;0];
+        y0_tra=[0;0;0;0;0;0];
         y0_mass=10;
 
         q_goal=eul2quat([0,0,0])';
@@ -74,6 +74,7 @@ function Tester(test_n)
         [t_traj,y_traj]=ode45(@(t,y) Cheaser(t,y,y_goal),tspan,y0);
         
         %reconstruct output from ode45
+        u_traj=t_traj.*zeros(1,6);
         for i=1:length(t_traj)
             [~,u]=Cheaser(t_traj(i),y_traj(i,:),y_goal);
             u_traj(i,:)=u;

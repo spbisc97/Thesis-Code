@@ -19,8 +19,8 @@ function Tester(test_n)
 
     if test=="Dyn"
         tspan=1:0.1:Hours*3600;
-        x0=[1;0;0];
-        v0=[0;0;0];
+        x0=[0;1800;0];
+        v0=[1;0;0];
         M0=10;
         u=@(t) 0.01*[sin(100*t),0,0];
         y0=[x0;v0;M0];
@@ -78,31 +78,52 @@ function Tester(test_n)
     end
 
     if test=="EulerCheaser"
-        step=1;
+        step=0.1;
         tspan=[1:step:Hours*3600]; %#ok
         y_traj=tspan.*zeros(14,1);
         y_goal_traj=tspan.*zeros(14,1);
         u_traj=tspan.*zeros(6,1);
+        
+
+       
+%% Goal Trajectory
+        q_goal=eul2quat([0,0,0])';
+        y_goal_att=[q_goal;0;0;0];
+        y_goal_tra=[0;1800;0;1;0;0];
+        y_goal_mass=Sat_params().fuel_mass;
+        y_goal=[y_goal_tra;y_goal_att;y_goal_mass];
+        y_goal_traj(:,1)=y_goal;
+
+%% Initial Conditions
 
         eulZYX=[0,0,0];
         q0=eul2quat(eulZYX)';
         y0_att=[q0;0;0;0];
-        y0_tra=[1;0;0;0;0;0];
-        y0_mass=10;
-
-        q_goal=eul2quat([0,0,0])';
-        y_goal_att=[q_goal;0;0;0];
-        y_goal_tra=[0;0;0;0;0;0];
-        y_goal_mass=y0_mass;
-
+        y0_tra=[0;1800;0;1;0;0];
+        y0_mass=Sat_params().fuel_mass;
         y=[y0_tra;y0_att;y0_mass];
-        y_goal=[y_goal_tra;y_goal_att;y_goal_mass];
         y_traj(:,1)=y;
         counter=1;
+
         for t=tspan
 
-            y_goal_traj(:,counter)=y_goal;
-            [dy,u]=Cheaser(t,y,y_goal);
+            f_goal_traj=@(y) [(y(2)/2)/1000;-(y(1)*2)/1000];
+            y_goal_traj(4:5,counter)=f_goal_traj(y_goal_traj(1:2,counter));
+            y_goal_traj(1:2,counter)=y_goal_traj(1:2,counter)+y_goal_traj(4:5,counter)*step;
+        
+            counter=counter+1;
+            y_goal_traj(:,counter)=y_goal_traj(:,counter-1);
+
+            %t = t + step;
+        end
+
+       
+        
+        counter=1;
+
+        for t=tspan
+           
+            [dy,u]=Cheaser(t,y,y_goal_traj(:,counter));
             y = y + step*dy;
 
             y_traj(:,counter)=y;
@@ -113,7 +134,7 @@ function Tester(test_n)
             %t = t + step;
         end
         toc
-        plotter(tspan',y_traj',y_goal_traj',u_traj')
+        plotter(tspan',y_traj',y_goal_traj(:,1:length(tspan))',u_traj')
 
 
     end
@@ -148,6 +169,7 @@ end
             u_plotter(t,u);
         end
     end
+    
     function fig=u_plotter(t,u)
         fig=figure();
         fig.Name="Control";
@@ -192,21 +214,21 @@ end
         nexttile
         plot(tspan,y_traj(:,4))
         hold on
-        plot(y_goal_traj(:,4),'--')
+        plot(tspan,y_goal_traj(:,4),'--')
         legend("X'","X'_d");
         title("Lv Lh Velocity")
 
         nexttile
         plot(tspan,y_traj(:,5))
         hold on
-        plot(y_goal_traj(:,5),'--')
+        plot(tspan,y_goal_traj(:,5),'--')
         legend("Y'","Y'_d");
         title("Lv Lh Velocity")
 
         nexttile
         plot(tspan,y_traj(:,6))
         hold on
-        plot(y_goal_traj(:,6),'--')
+        plot(tspan,y_goal_traj(:,6),'--')
         legend("Z'","Z'_d");
         title("Lv Lh Velocity")
 

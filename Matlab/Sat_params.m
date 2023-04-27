@@ -20,7 +20,7 @@ function parameters=Sat_params()
 
     parameters.mu=3.986004418*10^14;
     parameters.rt=6.6*1e6;
-    parameters.n= 1.2e-3;%=sqrt(mu/rt^3);
+    %parameters.n= 1.2e-3;%=sqrt(mu/rt^3);
 
     %% when I need symbolic
     % syms Ix Iy Iz mass Isp Tmax mu rt 

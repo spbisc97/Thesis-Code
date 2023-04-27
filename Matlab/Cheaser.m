@@ -1,5 +1,6 @@
 function [dy,u] = Cheaser(t,y,y_goal) %#codegen
     %disp(t)
+    coder.extrinsic('exist');
     if ~exist('y','var')
         Return_lqr_values()
         return;
@@ -87,10 +88,12 @@ end
 function Return_lqr_values()
     %[A,B]=get_AB_tra([0;0;0;0;0;0;10],[0;0;0]);
     [A,B]=sat_jacobian([0;0;0;0;0;0;10],[0;0;0]);
+    coder.extrinsic('lqr');
     K=lqr(A,B,get_Q_tra(),get_R_tra());
     %string([K,[";...";";...";";];"]])
     NoInput="No Input has been provided, the K lqr values are returned ";
     disp(NoInput)
+    coder.extrinsic('format');
     format longg
     disp(K)
 end

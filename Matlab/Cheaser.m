@@ -1,22 +1,20 @@
 function [dy,u] = Cheaser(t,y,y_goal) %#codegen
     %disp(t)
+    coder.extrinsic('exist');
     if ~exist('y','var')
         Return_lqr_values()
         return;
     end
 
-    mass=y(14);
-    y=y(1:13);
-    
+    y=y(:);
+
 
     u_tranlational=translation_control(y(1:6),y_goal(1:6));%later mass will have to be passed
     u_attitude=attitude_control(y(7:13),y_goal(7:13));%later mass will have to be passed
 
-    dy_tra = Sat_Translational_Dyn(t,[y(1:6);mass],u_tranlational);
-    dy_att= Sat_Attitude_Dyn(t,y(7:13),u_attitude);
-    dy_mass=dy_att(8)+dy_tra(7);
-    dy=[dy_tra(1:6);dy_att(1:7);dy_mass];
-    u=[u_tranlational;u_attitude];
+    
+    [dy,u]=Sat_dyn(t,y,u_tranlational,u_attitude);
+    %u=[u_tranlational;u_attitude];
 end
 
 
@@ -25,60 +23,78 @@ end
 %% Control Functions
 function [u,e]=translation_control(y,y_goal)
     %u=0;e=0;
-    e=y_goal(1:6)-y(1:6);
-    u=lqr_control_tra(e);
+    %e=y_goal(1:6)-y(1:6);
+    [u,e]=lqr_control_tra(y(1:6),y_goal(1:6));
 end
 
 function [u,e]=attitude_control(y,y_goal)
-    u=[0;0;0];e=[0;0;0;0;0;0;0];
+    %u=[0;0;0];
+    e=[0;0;0;0;0;0;0];
     u=quat_err_rate(y,y_goal);
 
 end
 
 %% Translation Helping Functions
-function u=lqr_control_tra(error)
-    u=get_k_tra()*(error);
+function [u,e]=lqr_control_tra(y,y_goal)
+    e=y_goal(1:6)-y(1:6);
+    u=get_k_tra(y,[0;0;0])*(e);
+    
 end
 
-function K=get_k_tra()
-    %K=lqr(get_A_tra(),get_B_tra(),get_Q_tra(),get_R_tra());
+function K=get_k_tra(y,u)
+    %[A,B]=get_AB_tra(y,u);
+    %[A,B]=sat_jacobian(y,u);
+    %K=simple_lqr(A,B,get_Q_tra(),get_R_tra());
     %pause
-    K=[...
-        3.1623   -0.0000   -0.0000    3.1633    0.0000    0.0000;...
-        0.0000    3.1623    0.0000   -0.0000    3.1633    0.0000;...
-        0.0000   -0.0000    3.1623    0.0000   -0.0000    3.1633;];
+     K=[...
+        3.10446912836289e-08     -2.73186895986547e-11     -9.88240420260271e-20   2.69229716706869e-06      1.31826306669043e-05      9.67820398309341e-17
+        5.86774799334853e-07     -2.58150711097142e-10     -8.02539314140983e-21         4.39421022232945e-07      0.000249254005185124     -5.73167583337792e-18
+       -2.95196688268913e-18     -1.17680560270348e-23      9.01309369777884e-14         9.68285856369672e-16     -1.67494659966785e-15      2.68563510472645e-06];
+       end
+
+function [A,B]=get_AB_tra(y,u)
+    %Init Vars using     %F_LV_LH
+    p=Sat_params();
+    n=sqrt(p.mu/p.rt^3);
+    total_mass=10+p.mass;
+
+    A = [0, 0, 0, 1, 0, 0 %
+        0, 0, 0, 0, 1, 0 %
+        0, 0, 0, 0, 0, 1 %
+        3 * n ^ 2, 0, 0, 0, 2 * n, 0 %
+        0, 0, 0, -2 * n, 0, 0 %
+        0, 0, -n ^ 2, 0, 0, 0]; %
+
+    B = [0, 0, 0
+        0, 0, 0
+        0, 0, 0
+        1 / total_mass, 0, 0
+        0, 1 / total_mass, 0
+        0, 0, 1 / total_mass];
+
+    A = A(1:6, 1:6);
+    B = B(1:6, :);
+
 end
 
-function A=get_A_tra()
-    n= 6.3135e-04;
-    %Init Vars using     %F_LV_LH
-    A=[ 0 0 0 1 0 0 ;...
-        0 0 0 0 1 0;...
-        0 0 0 0 0 1;...
-        3*n^2 0 0 0 2*n 0;...
-        0 0 0 -2*n 0 0;...
-        0 0 -n^2 0 0 0;...
-        ];
-end
-function B= get_B_tra()
-    B=[ 0 0 0;...
-        0 0 0;...
-        0 0 0;...
-        1 0 0;...
-        0 1 0;...
-        0 0 1;];
-end
+
+
 function Q=get_Q_tra()
-    Q=diag([1,1,1,1,1,1]);
+    Q=diag([3e1,2e1,1e1,0.1,0.1,0.1]*1e-2);
 end
 function R=get_R_tra()
-    R=diag([1,1,1])*1e-7;
+    R=diag([1e1,3e2,1])*1e16;
 end
 function Return_lqr_values()
-    K=lqr(get_A_tra(),get_B_tra(),get_Q_tra(),get_R_tra());
+    %[A,B]=get_AB_tra([0;0;0;0;0;0;10],[0;0;0]);
+    [A,B]=sat_jacobian([0;0;0;0;0;0;10],[0;0;0]);
+    coder.extrinsic('lqr');
+    K=lqr(A,B,get_Q_tra(),get_R_tra());
     %string([K,[";...";";...";";];"]])
     NoInput="No Input has been provided, the K lqr values are returned ";
     disp(NoInput)
+    coder.extrinsic('format');
+    format longg
     disp(K)
 end
 
@@ -88,18 +104,6 @@ function [u,e]=quat_err_rate(y,y_goal)
     e=[q_e;0;0;0];
     u=-q_e(2:4)/(1-norm(q_e(2:4))^2)-y(5:7);
     u=u/100;
-end
-
-function K=get_k_att()
-    % y = sym('y%d', [7 1])
-    % u = sym('u%d', [3 1])
-    % sym_system=Sat_Attitude_Dyn(0,y,u)
-    % A=jacobian(sym_system,y)
-    % B=jacobian(sym_system,u)
-
-    % probaly not the right way
-    % I could try to use the dynamics with euler angles
-
 end
 
 function mat=omega(q)
@@ -115,11 +119,6 @@ end
 function e=quat_tracking_error(q,q_d)
     q_d_inv=quatinv(q_d')';
     e=omega(q_d_inv)*q;
-
-    %e=[0;0;0;0];
-    %e(1)=q(1)*q_d(1)+q(2:4)'*q_d(2:4);
-    %e(2:4)=q_d(1)*q(2:4)-q(1)*q_d(2:4)+cross(q_d(2:4),q(2:4));
-
     e=e(:);
     if norm(e)>1.1
         disp("error norm error")

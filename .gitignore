@@ -32,3 +32,9 @@ octave-workspace
 
 # LocalTesting
 local*.m
+
+
+
+
+# Compiled files
+Python/Gymnasium_tests/imgs/*.mp4

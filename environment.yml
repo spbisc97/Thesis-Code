@@ -1,0 +1,22 @@
+# Micromamba environment file
+# https://marketplace.visualstudio.com/items?itemName=corker.vscode-micromamba
+
+name: default-RL
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python==3.10.11
+  - pip==23.0.1
+  - ipykernel
+  - numpy
+  - jupyterlab
+  - pandas
+  - scipy
+  - scikit-learn
+  - gymnasium # or gym
+  - matplotlib
+  - cloudpickle
+  - stable-baselines3[extra]==2.0.0a5

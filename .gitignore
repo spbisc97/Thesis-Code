@@ -36,5 +36,7 @@ local*.m
 
 
 
-# Compiled files
-Python/Gymnasium_tests/imgs/*.mp4
+# Runned files
+Python/Gymnasium_tests/imgs/*
+Python/Gymnasium_tests/logs/*
+Python/Gymnasium_tests/models/*

@@ -15,10 +15,11 @@ cv2.destroyAllWindows();
 
 from Snake.Snake_v0 import SnakeEnv
 from stable_baselines3.common.env_checker import check_env
+import gymnasium as gym
 import numpy as np
 import time
 
-env = SnakeEnv(render_mode='human')
+env = gym.make("Snake-v0",render_mode='human')
 check_env(env)
 
 # It will check your custom environment and output additional warnings if needed

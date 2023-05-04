@@ -1,0 +1,85 @@
+import numpy as np
+import os
+
+from PyQt5.QtCore import QLibraryInfo # others imports
+os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = QLibraryInfo.location(
+    QLibraryInfo.PluginsPath
+)
+os.environ['OPENCV_LOG_LEVEL'] = 'SILENT'
+
+import cv2
+img = np.zeros((500,500,3),dtype='uint8')
+cv2.imshow('Test',img);
+cv2.waitKey(10);
+cv2.destroyAllWindows();
+
+#prequel
+#needed for cv2.imshow to work
+
+
+
+from stable_baselines3 import A2C
+from Snake.Snake_v0 import SnakeEnv
+import numpy as np
+import os
+import time
+import ffmpegio
+
+
+file_path=os.path.dirname(__file__)
+os.chdir(file_path)
+
+env = SnakeEnv()
+env_name = "Snake-v0"
+Algo = A2C
+Algo.name="A2C"
+
+
+
+models_dir=f"models/{env_name}/{Algo.name}"
+logdir = f"logs/{env_name}/{Algo.name}"
+imgs_dir = f"imgs/{env_name}/{Algo.name}"
+
+os.makedirs(models_dir, exist_ok=True)
+os.makedirs(logdir, exist_ok=True)
+os.makedirs(imgs_dir, exist_ok=True)
+
+TIMESTEPS = 200_000
+last_model = 2
+if last_model>0:
+    model=Algo.load(f"{models_dir}/{Algo.name}_{last_model}", env=env, verbose=1, tensorboard_log=logdir)
+else:
+    model=Algo('MlpPolicy', env, verbose=1, tensorboard_log=logdir)
+    
+episodes=4
+for i in range(last_model+1,last_model+episodes+1):
+    model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False,tb_log_name=f"run_{i}")
+    model.save(f"{models_dir}/{Algo.name}_{i}")
+    last_model=i
+    
+
+env = SnakeEnv(render_mode='rgb_array')
+
+episodes = 3
+
+
+for episode in range(episodes):
+    obs,info=env.reset()
+    frames=[]
+    frames+=[env.render()]
+    term=False
+    while not term:
+        action,_states = model.predict(obs)
+        obs,reward,term,trunc,info= env.step(action)
+        if episode==episodes-1:
+            frames+=[env.render()]
+
+        if term or trunc:
+            term=False
+            break
+
+print(len(frames))
+
+
+filename = f"./{imgs_dir}/{Algo.name}_{last_model}.mp4"
+ffmpegio.video.write(filename, 10, np.array(frames[0::3]),overwrite=True,show_log=True)

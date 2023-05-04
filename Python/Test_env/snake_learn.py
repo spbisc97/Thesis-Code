@@ -18,7 +18,7 @@ cv2.destroyAllWindows();
 
 
 
-from stable_baselines3 import A2C
+from stable_baselines3 import PPO
 from Snake.Snake_v0 import SnakeEnv
 import numpy as np
 import os
@@ -31,8 +31,8 @@ os.chdir(file_path)
 
 env = SnakeEnv()
 env_name = "Snake-v0"
-Algo = A2C
-Algo.name="A2C"
+Algo = PPO
+Algo.name="PPO"
 
 
 
@@ -45,20 +45,20 @@ os.makedirs(logdir, exist_ok=True)
 os.makedirs(imgs_dir, exist_ok=True)
 
 TIMESTEPS = 200_000
-last_model = 2
+last_model = 26
 if last_model>0:
     model=Algo.load(f"{models_dir}/{Algo.name}_{last_model}", env=env, verbose=1, tensorboard_log=logdir)
 else:
     model=Algo('MlpPolicy', env, verbose=1, tensorboard_log=logdir)
     
-episodes=4
+episodes=0
 for i in range(last_model+1,last_model+episodes+1):
     model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False,tb_log_name=f"run_{i}")
     model.save(f"{models_dir}/{Algo.name}_{i}")
     last_model=i
     
 
-env = SnakeEnv(render_mode='rgb_array')
+env = SnakeEnv(render_mode='human')
 
 episodes = 3
 
@@ -79,7 +79,6 @@ for episode in range(episodes):
             break
 
 print(len(frames))
-
-
-filename = f"./{imgs_dir}/{Algo.name}_{last_model}.mp4"
-ffmpegio.video.write(filename, 10, np.array(frames[0::3]),overwrite=True,show_log=True)
+if (env.render_mode=='rgb_array'):
+    filename = f"./{imgs_dir}/{Algo.name}_{last_model}.mp4"
+    ffmpegio.video.write(filename, 10, np.array(frames[0::3]),overwrite=True,show_log=True)

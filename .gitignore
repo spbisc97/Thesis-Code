@@ -44,4 +44,9 @@ logs/snake/PPO/run_1_0/events.out.tfevents.1683159440.elite-fed.281955.0
 Python/Test_env/logs/*
 Python/Test_env/imgs/*
 Python/Test_env/models/*
-Python/Test_env/Snake/__pycache__/*
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# C extensions
+*.so

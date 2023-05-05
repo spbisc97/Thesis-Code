@@ -13,7 +13,7 @@ cv2.imshow('Test',img);
 cv2.waitKey(10);
 cv2.destroyAllWindows();
 
-from Snake.Snake_v0 import SnakeEnv
+from Envs.Snake_v0 import SnakeEnv
 from stable_baselines3.common.env_checker import check_env
 import gymnasium as gym
 import numpy as np

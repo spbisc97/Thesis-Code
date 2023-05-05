@@ -19,7 +19,8 @@ cv2.destroyAllWindows();
 
 
 from stable_baselines3 import PPO
-from Snake.Snake_v0 import SnakeEnv
+from stable_baselines3.common.env_util import make_vec_env
+from Envs.Snake_v0 import SnakeEnv
 import gymnasium as gym
 import numpy as np
 import os
@@ -31,7 +32,7 @@ file_path=os.path.dirname(__file__)
 os.chdir(file_path)
 
 env_name = "Snake-v0"
-env = gym.make(env_name)
+#env = gym.make(env_name)
 
 Algo = PPO
 Algo.name="PPO"
@@ -46,16 +47,18 @@ os.makedirs(models_dir, exist_ok=True)
 os.makedirs(logdir, exist_ok=True)
 os.makedirs(imgs_dir, exist_ok=True)
 
+env = make_vec_env(env_name, n_envs=4)
+
 
 
 TIMESTEPS = 200_000
-last_model = 26
+last_model = 155
 if last_model>0:
     model=Algo.load(f"{models_dir}/{Algo.name}_{last_model}", env=env, verbose=1, tensorboard_log=logdir)
 else:
     model=Algo('MlpPolicy', env, verbose=1, tensorboard_log=logdir)
     
-episodes=4
+episodes=0
 for i in range(last_model+1,last_model+episodes+1):
     model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False,tb_log_name=f"run_{i}")
     model.save(f"{models_dir}/{Algo.name}_{i}")

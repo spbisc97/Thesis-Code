@@ -23,7 +23,8 @@ env_name = "Satellite-discrete-v0"
 # env = gym.make(env_name)
 
 Algo = PPO
-Algo.name = "PPO"
+Algo.name = "PPO-ent"
+ENT = 0.01
 
 
 models_dir = f"models/{env_name}/{Algo.name}"
@@ -35,9 +36,11 @@ os.makedirs(logdir, exist_ok=True)
 os.makedirs(imgs_dir, exist_ok=True)
 
 
-def run_episode(model, env_name, model_name="PPO", model_num=0, model_timesteps=0):
+def run_episode(
+    model, env_name, model_name="PPO", model_num=0, model_timesteps=0, args=()
+):
     term = False
-    env=gym.make(env_name)
+    env = gym.make(env_name)
     obs, info = env.reset()
     rewards = [0]
     counter = [0]
@@ -56,36 +59,58 @@ def run_episode(model, env_name, model_name="PPO", model_num=0, model_timesteps=
             term = False
             break
     save_plot(
-        counter,
-        rewards,
-        obss,
-        actions,
+        np.array(counter),
+        np.array(rewards),
+        np.array(obss),
+        np.array(actions),
         name=model_name,
         model_num=model_num,
         model_timesteps=model_timesteps,
+        args=args,
     )
 
 
 def save_plot(
-    counter, rewards, obss, actions, name="PPO", model_num=0, model_timesteps=0
+    counter,
+    rewards,
+    obss,
+    actions,
+    name="PPO",
+    model_num=0,
+    model_timesteps=0,
+    args=(),
 ):
     rewards_sum = np.zeros_like(rewards)
     for i in range(len(rewards)):
         rewards_sum[i] = np.sum(rewards[:i])
-    fig, ((ax1, ax2), (ax3,ax4)) = plt.subplots(2, 2)
+    rewards_sum = np.array(rewards_sum)
 
-    ax1.plot(counter, rewards, label="PPO")
+    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6), (ax7, ax8, ax9)) = plt.subplots(3, 3)
 
-    ax2.plot(counter, obss)
-    ax2.legend(["x", "y", "z", "vx", "vy", "vz"])
+    fig.suptitle(f"{name} {model_num} {model_timesteps:.1e}")
 
-    ax3.plot(counter, actions)
-    ax3.legend(["ux", "uy", "uz"])
-    
-    ax4.plot(counter, rewards_sum)
-    ax4.legend(["PPO"])
+    ax2.plot(counter, obss[:, 0:3])
+    ax2.legend(["x", "y", "z"])
 
-    plt.savefig(f"{imgs_dir}/{name}_{model_num}_{model_timesteps:.1e}.png")
+    ax3.plot(counter, obss[:, 3:6])
+    ax3.legend(["vx", "vy", "vz"])
+
+    ax4.plot(counter, rewards)
+    ax4.legend(["reward"])
+    ax5.plot(counter, rewards_sum)
+    ax5.legend(["reward_sum"])
+
+    ax7.plot(counter, actions[:, 0])
+    ax7.legend(["ux"])
+
+    ax8.plot(counter, actions[:, 1])
+    ax8.legend(["uy"])
+
+    ax9.plot(counter, actions[:, 2])
+    ax9.legend(["uz"])
+
+    args = "".join(map(str, args))
+    plt.savefig(f"{imgs_dir}/{name}{args}_{model_num}_{model_timesteps:.1e}.png")
     plt.close("all")
 
 
@@ -94,28 +119,49 @@ env = make_vec_env(env_name, n_envs=1)
 
 
 TIMESTEPS = 50_000
-last_model = 0
+last_model = 161
 if last_model > 0:
     model = Algo.load(
         f"{models_dir}/{Algo.name}_{last_model}",
         env=env,
         verbose=1,
+        ent_coef=ENT,
         tensorboard_log=logdir,
     )
 else:
     input("Press Enter to delete logs and models")
     send2trash.send2trash(f"{logdir}/")
     send2trash.send2trash(f"{models_dir}/")
-    model = Algo("MlpPolicy", env, verbose=1, tensorboard_log=logdir)
-
+    model = Algo(
+        "MlpPolicy",
+        env=env,
+        verbose=1,
+        ent_coef=ENT,
+        tensorboard_log=logdir,
+    )
+run_episode(
+    model,
+    env_name=env_name,
+    model_name=Algo.name,
+    model_num=last_model,
+    model_timesteps=model.num_timesteps,
+    args=(ENT,),
+)
 episodes = 300
 for i in range(last_model + 1, last_model + episodes + 1):
     model.learn(
-        total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name=f"run_{i}",log_interval=1
+        total_timesteps=TIMESTEPS,
+        reset_num_timesteps=False,
+        tb_log_name=f"run_{i}",
+        log_interval=1,
     )
     model.save(f"{models_dir}/{Algo.name}_{i}")
     last_model = i
-    run_episode(model, env_name=env_name, model_name=Algo.name, model_num=last_model, model_timesteps=model.num_timesteps)
-
-
-
+    run_episode(
+        model,
+        env_name=env_name,
+        model_name=Algo.name,
+        model_num=last_model,
+        model_timesteps=model.num_timesteps,
+        args=(ENT,),
+    )

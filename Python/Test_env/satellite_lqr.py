@@ -73,20 +73,24 @@ term = False
 for episode in range(1, episodes + 1):
     obs, info = env.reset()
     rewards = [0]
+    rewards_sum=[0]
     counter = [0]
     obss = [obs[0:6]]
+    actions = [env.action_space.sample() * 0]
 
     while not term:
         action = -np.matmul(K, obs[0:6])
         # print(action)
         obs, reward, term, trunc, info = env.step(action)
         rewards.append(reward)
+        rewards_sum.append(rewards_sum[-1] + reward)
         counter.append(counter[-1] + 1)
         obss.append(obs[0:6])
+        actions.append(action)
         # print(obs)
         # print(np.linalg.norm(obs[0:3]))
         # time.sleep(0.02)
-        if np.linalg.norm(obs[0:6]) < 0.0001 or counter[-1] > 5000:
+        if np.linalg.norm(obs[0:6]) < 0.0001 or counter[-1] > 50000:
             term = True
 
         if term or trunc:
@@ -94,12 +98,17 @@ for episode in range(1, episodes + 1):
             break
 
 
-fig, (ax1, ax2) = plt.subplots(1, 2)
+fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
 
 ax1.plot(counter, rewards, label="LQR")
 
 ax2.plot(counter, obss)
 ax2.legend(["x", "y", "z", "vx", "vy", "vz"])
-print(np.sum(rewards))
+
+ax3.plot(counter, actions)
+ax3.legend(["ux", "uy", "uz"])
+
+ax4.plot(counter, rewards_sum)
+ax4.legend(["LQR"])
 plt.show(block=True)
 

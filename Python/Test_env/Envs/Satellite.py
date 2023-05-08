@@ -13,14 +13,20 @@ class Satellite_base(gym.Env):
         "action_spaces": ["continuous", "discrete"],
     }
 
-    def __init__(self, render_mode=None, observation_space="MlpPolicy",action_space="continuous", control="Ml"):
+    def __init__(
+        self,
+        render_mode=None,
+        observation_space="MlpPolicy",
+        action_space="continuous",
+        control="Ml",
+    ):
         super(Satellite_base, self).__init__()
         # define action and observation space being gymnasium.spaces
         assert control in self.metadata["control"]
         self.control = control
-        
+
         assert action_space in self.metadata["action_spaces"]
-        if action_space == "continuous":        
+        if action_space == "continuous":
             self.action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float32)
         else:
             self.action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.int8)
@@ -49,8 +55,8 @@ class Satellite_base(gym.Env):
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
 
-        self.dmax = 100000
-        self.vmax = 100000
+        self.dmax = 20000
+        self.vmax = 20000
         self.prev_shaping = None
 
     def step(self, action):
@@ -68,7 +74,7 @@ class Satellite_base(gym.Env):
         state = np.zeros((6,), dtype=np.float32)
         # state[random.randint(0,2)] = random.randint(-100, 100)
         state[0:3] = (np.random.rand(1, 3) - 0.5) * 10
-        state[3:] = (np.random.rand(1, 3) - 0.5) * 1
+        state[3:] = (np.random.rand(1, 3) - 0.5) * 0.1
         self.chaser.set_state(state)
         self.prev_shaping = self._shape_reward()
         info = {}
@@ -103,14 +109,17 @@ class Satellite_base(gym.Env):
 
         # reward -=(self.chaser.distance_to_target()+0.1)
         reward += 10 / (self.chaser.distance_to_target() + 0.01)
-
+        reward -= (self.dmax / 100) / (
+            1.74 * self.dmax - self.chaser.distance_to_target() + 0.01
+        )
+        # something similar to -tanh(distance)
         return float(reward)
 
     def _shape_reward(self):
         shaping = (
-            -self.chaser.distance_to_target() / 10
+            -self.chaser.distance_to_target()  # +prev distance
             # + 10/(self.chaser.velocity_norm()+1)
-            - self.chaser.fuel_mass 
+            + self.chaser.fuel_mass  # - prev fuel
         )
         return shaping
 
@@ -139,7 +148,7 @@ class Chaser:
     mu = 3.986004418 * 1e14
     rt = 6.6 * 1e6
     Isp = 2250
-    Tmax = 1.05e-1
+    Tmax = 1.05e-2
     g = 9.81
     dt = 1
 

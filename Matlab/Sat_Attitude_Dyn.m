@@ -35,6 +35,7 @@ function [dy,u] = Sat_Attitude_Dyn(~,y,u) %#codegen
     w_dot=[parameters.invI * (-cross(w(1:3), parameters.I * w(1:3)) + torques)]; %#ok
 
     m_dot=-sum(abs(u(:)))/(g*parameters.Isp);
+    % this will be changed to a battery + rotation wheels
 
 
     dy=[q_dot;w_dot;m_dot];

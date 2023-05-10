@@ -44,7 +44,7 @@ def run_episode(
     obs, info = env.reset()
     rewards = [0]
     counter = [0]
-    obss = [obs[0:6]]
+    obss = [obs[0:7]]
     actions = [env.action_space.sample() * 0]
     while not term:
         action, _states = model.predict(obs)
@@ -52,7 +52,7 @@ def run_episode(
 
         rewards.append(reward)
         counter.append(counter[-1] + 1)
-        obss.append(obs[0:6])
+        obss.append(obs[0:7])
         actions.append(action)
 
         if term or trunc:
@@ -89,6 +89,9 @@ def save_plot(
 
     fig.suptitle(f"{name} {model_num} {model_timesteps:.1e}")
 
+    ax1.plot(counter, obss[:, 6])
+    ax1.legend(["fuel"])
+
     ax2.plot(counter, obss[:, 0:3])
     ax2.legend(["x", "y", "z"])
 
@@ -119,7 +122,7 @@ env = make_vec_env(env_name, n_envs=1)
 
 
 TIMESTEPS = 50_000
-last_model = 161
+last_model = 44
 if last_model > 0:
     model = Algo.load(
         f"{models_dir}/{Algo.name}_{last_model}",

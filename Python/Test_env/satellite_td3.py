@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+
 plt.legend()
 plt.show(block=False)
 plt.close("all")
@@ -10,6 +11,7 @@ from stable_baselines3.common.noise import (
     NormalActionNoise,
     OrnsteinUhlenbeckActionNoise,
 )
+from stable_baselines3.common.evaluation import evaluate_policy
 from Envs.Satellite import Satellite_base
 import gymnasium as gym
 import numpy as np
@@ -38,23 +40,21 @@ os.makedirs(logdir, exist_ok=True)
 os.makedirs(imgs_dir, exist_ok=True)
 
 
-
 # start training
-def run_episode(model,env_name,model_name="TD3",model_num=0,model_timesteps=0):
-    term=False
-    env=env.make(env_name)
+def run_episode(model, env_name, model_name="TD3", model_num=0, model_timesteps=0):
+    term = False
+    env = env.make(env_name)
     obs, info = env.reset()
     rewards = [0]
     counter = [0]
     obss = [obs[0:6]]
-    actions=[env.action_space.sample()*0]
+    actions = [env.action_space.sample() * 0]
     while not term:
         action, _states = model.predict(obs)
         obs, reward, term, trunc, info = env.step(action)
 
-        
         rewards.append(reward)
-        counter.append(counter[-1]+1)
+        counter.append(counter[-1] + 1)
         obss.append(obs[0:6])
         actions.append(action)
         if np.linalg.norm(obs[0:6]) < 1e-1 or counter[-1] > 1e4:
@@ -63,11 +63,22 @@ def run_episode(model,env_name,model_name="TD3",model_num=0,model_timesteps=0):
         if term or trunc:
             term = False
             break
-    save_plot(counter, rewards, obss, actions, name=model_name,model_num=model_num,model_timesteps=model_timesteps)
+    save_plot(
+        counter,
+        rewards,
+        obss,
+        actions,
+        name=model_name,
+        model_num=model_num,
+        model_timesteps=model_timesteps,
+    )
     return counter, rewards, obss, actions
 
-def save_plot(counter, rewards, obss, actions, name="TD3",model_num=0,model_timesteps=0):
-    fig, (ax1, ax2,ax3) = plt.subplots(3, 1)
+
+def save_plot(
+    counter, rewards, obss, actions, name="TD3", model_num=0, model_timesteps=0
+):
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
 
     ax1.plot(counter, rewards, label="TD3")
 
@@ -77,10 +88,11 @@ def save_plot(counter, rewards, obss, actions, name="TD3",model_num=0,model_time
     ax3.plot(counter, actions)
     ax3.legend(["ux", "uy", "uz"])
 
-    #plt.show(block=True)
-    
+    # plt.show(block=True)
+
     plt.savefig(f"{imgs_dir}/{name}_{model_num}_{model_timesteps:.1e}.png")
     plt.close("all")
+
 
 # env = make_vec_env(env_name, n_envs=2)
 env = gym.make(env_name)
@@ -93,7 +105,7 @@ action_noise = NormalActionNoise(
 
 
 TIMESTEPS = 50_000
-last_model =12
+last_model = 12
 if last_model > 0:
     model = Algo.load(
         f"{models_dir}/{Algo.name}_{last_model}",
@@ -123,16 +135,24 @@ else:
 episodes = 1
 for i in range(last_model + 1, last_model + episodes + 1):
     model.learn(
-        total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name=f"run_{i}",log_interval=10
+        total_timesteps=TIMESTEPS,
+        reset_num_timesteps=False,
+        tb_log_name=f"run_{i}",
+        log_interval=10,
     )
     model.save(f"{models_dir}/{Algo.name}_{i}")
     last_model = i
-    run_episode(model,env_name,term=False,model_name=Algo.name,model_num=last_model,model_timesteps=model.num_timesteps)
+    mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=1)
+    run_episode(
+        model,
+        env_name,
+        term=False,
+        model_name=Algo.name,
+        model_num=last_model,
+        model_timesteps=model.num_timesteps,
+    )
 
-    
-    
 
-#env = gym.make(env_name)
+# env = gym.make(env_name)
 
-#run_episode(model,env,term=False,model_name=Algo.name,model_num=last_model,model_timesteps=model.num_timesteps)
-
+# run_episode(model,env,term=False,model_name=Algo.name,model_num=last_model,model_timesteps=model.num_timesteps)

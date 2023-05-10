@@ -17,3 +17,9 @@ register(
     reward_threshold=25000.0,
     kwargs={"action_space": "discrete"},
 )
+register(
+    id="Satellite-rot-v0",
+    entry_point="Envs.Satellite_rot:Satellite_rot",
+    max_episode_steps=10000,
+    reward_threshold=0.0,
+)

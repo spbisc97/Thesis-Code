@@ -23,3 +23,9 @@ register(
     max_episode_steps=10000,
     reward_threshold=0.0,
 )
+register(
+    id="Satellite-rot-v0",
+    entry_point="Envs.Satellite_rot:Satellite_tra",
+    max_episode_steps=15000,
+    reward_threshold=0.0,
+)

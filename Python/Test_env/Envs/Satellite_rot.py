@@ -1,6 +1,6 @@
 import matplotlib as mpl
 
-mpl.use("GTK3Agg")
+
 import matplotlib.pyplot as plt
 
 import matplotlib.style as mplstyle
@@ -29,6 +29,7 @@ class Satellite_rot(gym.Env):
         "observation_spaces": ["MlpPolicy", "MultiInputPolicy"],
         "control": ["Ml", "ModelPredictiveControl", "LQR", "PID", "Random", "Human"],
         "action_spaces": ["continuous", "discrete"],
+        "matplotlib_backend": ["TKAgg", "Qt5Agg", "WXAgg", "GTKAgg", "Qt4Agg"],
     }
 
     def __init__(
@@ -37,6 +38,7 @@ class Satellite_rot(gym.Env):
         observation_space="MlpPolicy",
         action_space="continuous",
         control="Ml",
+        matplotlib_backend="TKAgg",
     ):
         super(Satellite_rot, self).__init__()
         # define action and observation space being gymnasium.spaces
@@ -69,6 +71,8 @@ class Satellite_rot(gym.Env):
         # or render_mode in self.metadata['render_modes']
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
+        if render_mode:
+            mpl.use("TKAgg")
 
         self.qd = np.array([1, 0, 0, 0], dtype=np.float32)
         self.dmax = 20000

@@ -5,6 +5,10 @@ from numba import jit
 import random
 
 
+# ? Maybe it's better to normalize the observation space?
+# ? Maybe it's better to normalize the action space?
+# ? Maybe it's better to use a discrete action space?
+# ? Maybe it's better to use a continuous action space?
 class Satellite_base(gym.Env):
     metadata = {
         "render_modes": ["rgb_array", "human"],

@@ -226,7 +226,8 @@ class Satellite_rot(gym.Env):
             return np.concatenate(
                 (
                     self.chaser.state,
-                    # np.asarray((self.chaser.fuel_mass,), dtype=np.float32),
+                    # we could also pass just the error(quaternion) instead of the state
+                    # till qd = (1 0 0 0), is exactly the same
                 )
             )
         else:

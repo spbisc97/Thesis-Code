@@ -11,13 +11,11 @@ function [dy,u] = Chaser(t,y,y_goal) %#codegen
 
     u_tranlational=translation_control(y(1:6),y_goal(1:6));%later mass will have to be passed
     u_attitude=attitude_control(y(7:13),y_goal(7:13));%later mass will have to be passed
-
-    
     [dy,u]=Sat_dyn(t,y,u_tranlational,u_attitude);
     %u=[u_tranlational;u_attitude];
 end
 
-
+%% Integration Functions
 
 
 %% Control Functions
@@ -105,8 +103,8 @@ function [u,e]=quat_err_rate(y,y_goal)
     parameters=Sat_params();    
     p=-q_e(2:4)/(1-norm(q_e(2:4))^2);
     d=y_goal(5:7)-y(5:7);
-    kp=0.5*parameters.invI*1e-5;
-    kd=parameters.invI*1e-5;
+    kp=0.2*parameters.invI*1e-5;
+    kd=30*parameters.invI*1e-5;
     u=kp*p+kd*d;
 end
 

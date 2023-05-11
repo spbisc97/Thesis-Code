@@ -11,8 +11,8 @@ function Tester(test_n)
     test=simulations(test_n);
 
     % Simulation Time
-    Days=1;
-    Hours=24*Days;
+    % Days=1;
+    Hours=12;
 
 
     %% Test The Satellites Dynamics

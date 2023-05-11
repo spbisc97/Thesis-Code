@@ -4,6 +4,8 @@ function [dy,u] = Sat_Attitude_Dyn(~,y,u) %#codegen
     %   quaternion+velocities
 
     parameters=Sat_params();
+    %override tmax
+    parameters.Tmax=0.03;
     
     g=9.81;
 

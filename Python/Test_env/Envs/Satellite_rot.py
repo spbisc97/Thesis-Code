@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 import matplotlib.style as mplstyle
 
-mplstyle.use("fast")
+# mplstyle.use("fast")
 
 import gymnasium as gym
 from gymnasium import spaces
@@ -83,6 +83,7 @@ class Satellite_rot(gym.Env):
     def step(self, action):
         reward = 0
         truncated = False
+        action = self._action_filter(action)
         self.chaser.rotate(self._action_filter(action))
         terminated = self._beyond_observational_space()  # or self.chaser.fuel_mass <= 0
         observation = self._get_observation()
@@ -138,22 +139,45 @@ class Satellite_rot(gym.Env):
             limits = np.array(
                 [
                     [[-np.pi, np.pi], [-np.pi, np.pi], [-np.pi, np.pi]],
-                    [[-1, 1], [-1, 1], [-1, 1]],
-                    [[-1, 1], [-1, 1], [-1, 1]],
+                    [[-0.1, 0.1], [-0.1, 0.1], [-0.1, 0.1]],
+                    [[-0.01, 0.01], [-0.01, 0.01], [-0.01, 0.01]],
                     [[-2, 0.3], [-100, 1], [-1, 1]],
                 ]
             )
-            (lines[0, 0],) = ax[0, 0].plot(self.times, self.euler_angles[:, 0])
-            (lines[0, 1],) = ax[0, 1].plot(self.times, self.euler_angles[:, 1])
-            (lines[0, 2],) = ax[0, 2].plot(self.times, self.euler_angles[:, 2])
-            (lines[1, 0],) = ax[1, 0].plot(self.times, self.statuses[:, 4])
-            (lines[1, 1],) = ax[1, 1].plot(self.times, self.statuses[:, 5])
-            (lines[1, 2],) = ax[1, 2].plot(self.times, self.statuses[:, 6])
-            (lines[2, 0],) = ax[2, 0].plot(self.times[:-1], self.actions[:, 0])
-            (lines[2, 1],) = ax[2, 1].plot(self.times[:-1], self.actions[:, 1])
-            (lines[2, 2],) = ax[2, 2].plot(self.times[:-1], self.actions[:, 2])
-            (lines[3, 0],) = ax[3, 0].plot(self.times[:-1], self.rewards[:])
-            (lines[3, 1],) = ax[3, 1].plot(self.times[:-1], self.rewards_sum[:])
+            line_width = 0.5
+            (lines[0, 0],) = ax[0, 0].plot(
+                self.times, self.euler_angles[:, 0], linewidth=line_width
+            )
+            (lines[0, 1],) = ax[0, 1].plot(
+                self.times, self.euler_angles[:, 1], linewidth=line_width
+            )
+            (lines[0, 2],) = ax[0, 2].plot(
+                self.times, self.euler_angles[:, 2], linewidth=line_width
+            )
+            (lines[1, 0],) = ax[1, 0].plot(
+                self.times, self.statuses[:, 4], linewidth=line_width
+            )
+            (lines[1, 1],) = ax[1, 1].plot(
+                self.times, self.statuses[:, 5], linewidth=line_width
+            )
+            (lines[1, 2],) = ax[1, 2].plot(
+                self.times, self.statuses[:, 6], linewidth=line_width
+            )
+            (lines[2, 0],) = ax[2, 0].plot(
+                self.times[:-1], self.actions[:, 0], linewidth=line_width
+            )
+            (lines[2, 1],) = ax[2, 1].plot(
+                self.times[:-1], self.actions[:, 1], linewidth=line_width
+            )
+            (lines[2, 2],) = ax[2, 2].plot(
+                self.times[:-1], self.actions[:, 2], linewidth=line_width
+            )
+            (lines[3, 0],) = ax[3, 0].plot(
+                self.times[:-1], self.rewards[:], linewidth=line_width
+            )
+            (lines[3, 1],) = ax[3, 1].plot(
+                self.times[:-1], self.rewards_sum[:], linewidth=line_width
+            )
             # (lines[3, 2],) = ax[3, 2].plot(self.times, self.rewards[:, 2])
 
             for idx, x in np.ndenumerate(ax):
@@ -180,7 +204,7 @@ class Satellite_rot(gym.Env):
             lines[3, 0].set_data(self.times[:-1], self.rewards[:])
             lines[3, 1].set_data(self.times[:-1], self.rewards_sum[:])
 
-        mplstyle.use("fast")
+        # mplstyle.use("fast")
 
         for idx, x in np.ndenumerate(ax):
             ax[idx[0], idx[1]].relim(visible_only=True)
@@ -308,11 +332,11 @@ class Chaser:
     # rt = 6.6 * 1e6
     Tmax = 1.05e-2
     g = 9.81
-    dt = 0.5
+    dt = 1
     I = np.diag([8.33e-2, 1.08e-1, 4.17e-2])
     invI = np.diag([12.0048019207683, 9.25925925925926, 23.9808153477218])
 
-    def __init__(self, step=1):
+    def __init__(self, step=None):
         # self.position = np.array([0,0,0,0])
         # self.velocity = np.array([0,0,0])
         self.state = np.zeros((7,), dtype=np.float32)
@@ -381,9 +405,10 @@ class Chaser:
         q_e = Chaser.quat_track_err(q1, qd)
         p = -q_e[1:4] / (1 - np.dot(q_e[1:4], q_e[1:4]))
         d = wd - w
-        kp = 0.01 * Chaser.invI
-        kd = 0.05 * Chaser.invI
+        kp = 0.5 * 1e-5 * Chaser.invI
+        kd = 30 * 1e-5 * Chaser.invI
         u = kp @ p + kd @ d
+        print(u)
         return u
 
     @staticmethod
@@ -417,7 +442,7 @@ def eul_to_quat(eul):
     Output
       :return qx, qy, qz, qw: The orientation in quaternion [x,y,z,w] format
     """
-    roll, pitch, yaw = eul
+    yaw, pitch, roll = eul
     qx = np.sin(roll / 2) * np.cos(pitch / 2) * np.cos(yaw / 2) - np.cos(
         roll / 2
     ) * np.sin(pitch / 2) * np.sin(yaw / 2)
@@ -456,10 +481,10 @@ if __name__ == "__main__":
 
     check_env(Satellite_rot(), warn=True)
     print("env checked")
-    env = Satellite_rot(render_mode="human")
+    env = Satellite_rot(render_mode="human", control="PID")
     obs, info = env.reset()
     t_start = time.time()
-    for i in range(600):
+    for i in range(100):
         action = Chaser.quaternion_err_rate(obs[0:4], info["qd"], w=obs[4:8])
         # action = np.array([0, 0, 0])
         obs, reward, term, trunc, info = env.step(action)
@@ -470,22 +495,24 @@ if __name__ == "__main__":
     print(time.time() - t_start)
     env.close()
 
-    env = Satellite_rot(render_mode="rgb_array")
+    env = Satellite_rot(render_mode="rgb_array", control="PID")
     term = False
-    obs, info = env.reset()
     rwds = 0
     t_start = time.time()
-    steps = 10000
-    for i in range(10000):
-        action = Chaser.quaternion_err_rate(obs[0:4], info["qd"], w=obs[4:8])
-        # action = np.array([0, 0, 0])
-        obs, reward, term, trunc, info = env.step(action)
-        rwds += reward
-        if i == steps - 1:
-            term = True
-        if term:
-            plt.imshow(env.render())
-            time.sleep(5)
-            break
+    steps = 3000
+    ep = 6
+    for i in range(ep):
+        obs, info = env.reset()
+        for i in range(steps):
+            action = Chaser.quaternion_err_rate(obs[0:4], info["qd"], w=obs[4:8])
+            # action = np.array([0, 0, 0])
+            obs, reward, term, trunc, info = env.step(action)
+            rwds += reward
+            if i == steps - 1:
+                term = True
+            if term:
+                plt.imshow(env.render())
+                time.sleep(5)
+                break
     print(time.time() - t_start)
     env.close()

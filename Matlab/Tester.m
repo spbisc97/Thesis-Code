@@ -12,7 +12,7 @@ function Tester(test_n)
 
     % Simulation Time
     % Days=1;
-    Hours=12;
+    Hours=2;
 
 
     %% Test The Satellites Dynamics
@@ -49,12 +49,12 @@ function Tester(test_n)
 
     %% Test The Chaser
     if test=="Chaser"
-        step=10;
+        step=1;
         tspan=1:step:Hours*3600;
-        eulZYX=[1,0,0];
+        eulZYX=[rand-0.5,rand-0.5,rand-0.5]*pi*2;
         q0=eul2quat(eulZYX)';
         y0_att=[q0;0;0;0];
-        y0_tra=[1;0;0;0;0;0];
+        y0_tra=[0;0;0;0;0;0];
         y0_mass=10;
 
         q_goal=eul2quat([0,0,0])';
@@ -77,7 +77,7 @@ function Tester(test_n)
         plotter(t_traj,y_traj,y_goal'.*ones(length(t_traj),1),u_traj);
     end
 
-    if test=="EulerChaser"
+    if test=="EulerChaser_traj"
         step=0.1;
         tspan=[1:step:Hours*3600]; %#ok
         y_traj=tspan.*zeros(14,1);
@@ -138,34 +138,7 @@ function Tester(test_n)
 
 
     end
-    if test=="EulerChaser_Traj"
-                step=10;
-        tspan=1:step:Hours*3600;
-        eulZYX=[1,0,0];
-        q0=eul2quat(eulZYX)';
-        y0_att=[q0;0;0;0];
-        y0_tra=[1;0;0;0;0;0];
-        y0_mass=10;
 
-        q_goal=eul2quat([0,0,0])';
-        y_goal_att=[q_goal;0;0;0];
-        y_goal_tra=[0;0;0;0;0;0];
-        y_goal_mass=y0_mass;
-
-        y0=[y0_tra;y0_att;y0_mass];
-        y_goal=[y_goal_tra;y_goal_att;y_goal_mass];
-
-        [t_traj,y_traj]=ode45(@(t,y) Chaser(t,y,y_goal),tspan,y0);
-        toc
-        
-        %reconstruct output from ode45
-        u_traj=t_traj.*zeros(1,6);
-        for i=1:length(t_traj)
-            [~,u]=Chaser(t_traj(i),y_traj(i,:),y_goal);
-            u_traj(i,:)=u;
-        end
-        plotter(t_traj,y_traj,y_goal'.*ones(length(t_traj),1),u_traj);
-    end
 
     if test=="EulerChaser_Point"
         step=0.1;
@@ -183,7 +156,7 @@ function Tester(test_n)
         y_goal_mass=Sat_params().fuel_mass;
         y_goal=[y_goal_tra;y_goal_att;y_goal_mass];
         y_goal_traj(:,1)=y_goal;
-        f_goal_traj=@(y) [0;0];
+        %f_goal_traj=@(y) [0;0];
 
 %% Initial Conditions
 

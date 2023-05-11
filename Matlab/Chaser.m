@@ -1,4 +1,4 @@
-function [dy,u] = Cheaser(t,y,y_goal) %#codegen
+function [dy,u] = Chaser(t,y,y_goal) %#codegen
     %disp(t)
     coder.extrinsic('exist');
     if ~exist('y','var')
@@ -105,8 +105,8 @@ function [u,e]=quat_err_rate(y,y_goal)
     parameters=Sat_params();    
     p=-q_e(2:4)/(1-norm(q_e(2:4))^2);
     d=y_goal(5:7)-y(5:7);
-    kp=0.001*parameters.invI;
-    kd=0.000*parameters.invI;
+    kp=0.1*parameters.invI;
+    kd=0.05*parameters.invI;
     u=kp*p+kd*d;
 end
 

@@ -4,9 +4,9 @@ function Tester(test_n)
     addpath('Auxiliary');
     tic
     %Choose Simulation
-    simulations=["Dyn","AttDyn","Cheaser","EulerCheaser"];
+    simulations=["Dyn","AttDyn","Chaser","EulerChaser_Traj","EulerChaser_Point"];
     if ~exist('test_n','var') || ~isnumeric(test_n)
-        test_n=4;
+        test_n=5;
     end
     test=simulations(test_n);
 
@@ -47,11 +47,11 @@ function Tester(test_n)
 
     end
 
-    %% Test The Cheaser
-    if test=="Cheaser"
+    %% Test The Chaser
+    if test=="Chaser"
         step=10;
         tspan=1:step:Hours*3600;
-        eulZYX=[0,0,0];
+        eulZYX=[1,0,0];
         q0=eul2quat(eulZYX)';
         y0_att=[q0;0;0;0];
         y0_tra=[1;0;0;0;0;0];
@@ -65,19 +65,19 @@ function Tester(test_n)
         y0=[y0_tra;y0_att;y0_mass];
         y_goal=[y_goal_tra;y_goal_att;y_goal_mass];
 
-        [t_traj,y_traj]=ode45(@(t,y) Cheaser(t,y,y_goal),tspan,y0);
+        [t_traj,y_traj]=ode45(@(t,y) Chaser(t,y,y_goal),tspan,y0);
         toc
         
         %reconstruct output from ode45
         u_traj=t_traj.*zeros(1,6);
         for i=1:length(t_traj)
-            [~,u]=Cheaser(t_traj(i),y_traj(i,:),y_goal);
+            [~,u]=Chaser(t_traj(i),y_traj(i,:),y_goal);
             u_traj(i,:)=u;
         end
         plotter(t_traj,y_traj,y_goal'.*ones(length(t_traj),1),u_traj);
     end
 
-    if test=="EulerCheaser"
+    if test=="EulerChaser"
         step=0.1;
         tspan=[1:step:Hours*3600]; %#ok
         y_traj=tspan.*zeros(14,1);
@@ -123,7 +123,7 @@ function Tester(test_n)
 
         for t=tspan
            
-            [dy,u]=Cheaser(t,y,y_goal_traj(:,counter));
+            [dy,u]=Chaser(t,y,y_goal_traj(:,counter));
             y = y + step*dy;
 
             y_traj(:,counter)=y;
@@ -137,6 +137,93 @@ function Tester(test_n)
         plotter(tspan',y_traj',y_goal_traj(:,1:length(tspan))',u_traj')
 
 
+    end
+    if test=="EulerChaser_Traj"
+                step=10;
+        tspan=1:step:Hours*3600;
+        eulZYX=[1,0,0];
+        q0=eul2quat(eulZYX)';
+        y0_att=[q0;0;0;0];
+        y0_tra=[1;0;0;0;0;0];
+        y0_mass=10;
+
+        q_goal=eul2quat([0,0,0])';
+        y_goal_att=[q_goal;0;0;0];
+        y_goal_tra=[0;0;0;0;0;0];
+        y_goal_mass=y0_mass;
+
+        y0=[y0_tra;y0_att;y0_mass];
+        y_goal=[y_goal_tra;y_goal_att;y_goal_mass];
+
+        [t_traj,y_traj]=ode45(@(t,y) Chaser(t,y,y_goal),tspan,y0);
+        toc
+        
+        %reconstruct output from ode45
+        u_traj=t_traj.*zeros(1,6);
+        for i=1:length(t_traj)
+            [~,u]=Chaser(t_traj(i),y_traj(i,:),y_goal);
+            u_traj(i,:)=u;
+        end
+        plotter(t_traj,y_traj,y_goal'.*ones(length(t_traj),1),u_traj);
+    end
+
+    if test=="EulerChaser_Point"
+        step=0.1;
+        tspan=[1:step:Hours*3600]; %#ok
+        y_traj=tspan.*zeros(14,1);
+        y_goal_traj=tspan.*zeros(14,1);
+        u_traj=tspan.*zeros(6,1);
+        
+
+       
+%% Goal Trajectory
+        q_goal=eul2quat([0.2,0,0])';
+        y_goal_att=[q_goal;0;0;0];
+        y_goal_tra=[0;0;0;0;0;0];
+        y_goal_mass=Sat_params().fuel_mass;
+        y_goal=[y_goal_tra;y_goal_att;y_goal_mass];
+        y_goal_traj(:,1)=y_goal;
+        f_goal_traj=@(y) [0;0];
+
+%% Initial Conditions
+
+        eulZYX=[0,0,0];
+        q0=eul2quat(eulZYX)';
+        y0_att=[q0;0;0;0];
+        y0_tra=[0;0;0;0;0;0];
+        y0_mass=Sat_params().fuel_mass;
+        y=[y0_tra;y0_att;y0_mass];
+        y_traj(:,1)=y;
+        counter=1;
+
+        for t=tspan
+        
+            counter=counter+1;
+            y_goal_traj(:,counter)=y_goal_traj(:,counter-1);
+
+            %t = t + step;
+        end
+
+       
+        
+        counter=1;
+
+        for t=tspan
+           
+            [dy,u]=Chaser(t,y,y_goal_traj(:,counter));
+            y = y + step*dy;
+
+            y_traj(:,counter)=y;
+            u_traj(:,counter)=u;
+            
+
+            counter=counter+1;
+            %t = t + step;
+        end
+        toc
+        plotter(tspan',y_traj',y_goal_traj(:,1:length(tspan))',u_traj')
+
+        
     end
 end
 

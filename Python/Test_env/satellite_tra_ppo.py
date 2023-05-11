@@ -39,12 +39,16 @@ def run_episode(
     term = False
     env = gym.make(env_name, render_mode="rgb_array")
     obs, info = env.reset()
+
     while not term:
         action, _states = model.predict(obs)
         obs, reward, term, trunc, info = env.step(action)
         if term or trunc:
             X = env.render()
-            plt.imshow(X)
+            # plt.imshow(X)
+            plt.imsave(
+                f"{imgs_dir}/{model_name}_{model_num}_{model_timesteps:.1e}.png", X
+            )
             break
     env.close()
 
@@ -54,7 +58,7 @@ env = make_vec_env(env_name, n_envs=2)
 
 
 TIMESTEPS = 50_000
-last_model = 40
+last_model = 52
 if last_model > 0:
     model = Algo.load(
         f"{models_dir}/{Algo.name}_{last_model}",
@@ -74,7 +78,7 @@ else:
         # ent_coef=ENT,
         tensorboard_log=logdir,
     )
-episodes = 4
+episodes = 8
 run_episode(
     model,
     env_name=env_name,

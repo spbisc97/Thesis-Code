@@ -95,7 +95,7 @@ class Satellite_tra(gym.Env):
         self.chaser = Chaser()
         state = np.zeros((6,), dtype=np.float32)
         # state[random.randint(0,2)] = random.randint(-100, 100)
-        state[0:3] = (np.random.rand(1, 3) - 0.5) * 5
+        state[0:3] = (np.random.rand(1, 3) - 0.5) * 20
         state[3:] = (np.random.rand(1, 3) - 0.5) * 0.001
         self.chaser.set_state(state)
         self.prev_shaping = self._shape_reward()
@@ -246,24 +246,13 @@ class Satellite_tra(gym.Env):
         # Compute the weighted sum of the error
         # weighted_error = np.dot(error, weights)
 
-        # Define a tolerance threshold
-        # tolerance = 0.2
-
-        # Check if the weighted error is within the tolerance threshold
-        # if weighted_error < tolerance:
-        # Reward the agent for being close to the desired state
-        # reward = 1.0
-        # else:
-        # Penalize the agent for being far from the desired state
-        # reward = -0.1
-
         # Position Error Term
         log_position_error_term = np.log(np.linalg.norm(self.chaser.state[:3]) + 1e-9)
 
         # Control Effort Term
-        # control_effort_term = 0.1 * np.linalg.norm(action)
+        control_effort_term = 0.1 * np.linalg.norm(action)
 
-        reward = reward - log_position_error_term
+        reward = reward - log_position_error_term - control_effort_term
 
         return float(reward)
 

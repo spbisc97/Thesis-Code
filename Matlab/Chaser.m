@@ -105,8 +105,8 @@ function [u,e]=quat_err_rate(y,y_goal)
     parameters=Sat_params();    
     p=-q_e(2:4)/(1-norm(q_e(2:4))^2);
     d=y_goal(5:7)-y(5:7);
-    kp=0.1*parameters.invI;
-    kd=0.05*parameters.invI;
+    kp=0.5*parameters.invI*1e-5;
+    kd=parameters.invI*1e-5;
     u=kp*p+kd*d;
 end
 

@@ -59,7 +59,7 @@ env = make_vec_env(env_name, n_envs=2)
 
 
 TIMESTEPS = 50_000
-last_model = 2
+last_model = 0
 if last_model > 0:
     model = Algo.load(
         f"{models_dir}/{Algo.name}_{last_model}",

@@ -57,3 +57,4 @@ Python/Random/*
 venv/
 oryx-build-commands.txt
 .spyproject/*
+.devcontainer/devcontainer.json

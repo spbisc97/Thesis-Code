@@ -306,15 +306,15 @@ class Satellite_rot(gym.Env):
         self.prev_shaping = shaping
 
         # Attitude Error Term
-        attitude_error_term = -np.linalg.norm(
+        attitude_error_term = -1e1 * np.linalg.norm(
             self.chaser.quat_track_err(self.chaser.state[:4], self.qd)[1:]
         )
 
         # Control Effort Term
-        control_effort_term = -1e0 * np.sum(np.abs(action))
+        control_effort_term = -1e-1 * np.sum(np.abs(action))
 
         # Stability Term
-        #stability_term = -0.001 * np.dot(self.chaser.state[4:8], self.chaser.state[4:8])
+        stability_term = -1e-2 * np.dot(self.chaser.state[4:8], self.chaser.state[4:8])
 
         # Smoothness Term
         # smoothness_term = -0.001 * np.linalg.norm(np.gradient(angular_velocity))
@@ -323,7 +323,7 @@ class Satellite_rot(gym.Env):
         reward = (
             attitude_error_term
             + control_effort_term
-            #+ stability_term
+            + stability_term
             #  + smoothness_term
         )
         return float(reward)

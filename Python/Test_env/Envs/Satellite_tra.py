@@ -1,6 +1,5 @@
 import matplotlib as mpl
 
-mpl.use("TkAgg")
 import matplotlib.pyplot as plt
 
 import matplotlib.style as mplstyle
@@ -76,7 +75,7 @@ class Satellite_tra(gym.Env):
         # or render_mode in self.metadata['render_modes']
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         assert matplotlib_backend in self.metadata["matplotlib_backend"]
-
+        assert matplotlib_backend in mpl.rcsetup.all_backends
         mpl.use(matplotlib_backend)
         self.render_mode = render_mode
         self.subplots = None
@@ -270,23 +269,14 @@ class Satellite_tra(gym.Env):
             }
 
     def _reward_function(self, action=0, terminated=False):
-        reward = 0 if not terminated else -20000
-        # distance_reward = prev_distance - distance
-        # fuel_reward = prev_fuel - fuel
-        shaping = self._shape_reward()
+        term_reward = 0 if not terminated else -100_000
 
-        if self.prev_shaping is not None:
-            reward = shaping - self.prev_shaping
-        self.prev_shaping = shaping
-
-        # Compute the difference between the current state and the desired state
-        # error = np.abs(self.chaser.state[0:3])  # -(self.chaser.desired_state)
-
-        # Define weighting factors for each state variable
-        # weights = np.array([1.0, 2.0, 1.5]) * 0.0001
-
-        # Compute the weighted sum of the error
-        # weighted_error = np.dot(error, weights)
+        # Shaping Term (Not Used)
+        # shaping = self._shape_reward()
+        #
+        # if self.prev_shaping is not None:
+        # reward = shaping - self.prev_shaping
+        # self.prev_shaping = shaping
 
         # Position Error Term
         log_position_error_term = np.log(np.linalg.norm(self.chaser.state[:3]) + 1e-9)
@@ -294,7 +284,7 @@ class Satellite_tra(gym.Env):
         # Control Effort Term
         control_effort_term = 0.1 * np.linalg.norm(action)
 
-        reward = reward - log_position_error_term - control_effort_term
+        reward += term_reward - log_position_error_term - control_effort_term
 
         return float(reward)
 

@@ -1,6 +1,5 @@
-# Micromamba environment file
-# https://marketplace.visualstudio.com/items?itemName=corker.vscode-micromamba
-
+# create environment in place
+# conda env create --file environment.yml --prefix ./venv --quiet
 name: default-RL
 
 channels:

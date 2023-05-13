@@ -43,7 +43,7 @@ class Satellite_rot(gym.Env):
         observation_space="MlpPolicy",
         action_space="continuous",
         control="Ml",
-        matplotlib_backend="TkAgg",
+        matplotlib_backend=None,
     ):
         super(Satellite_rot, self).__init__()
         # define action and observation space being gymnasium.spaces
@@ -76,11 +76,9 @@ class Satellite_rot(gym.Env):
         # or render_mode in self.metadata['render_modes']
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
-        assert (
-            matplotlib_backend in self.metadata["matplotlib_backend"]
-            or matplotlib_backend is None
-        )
-        mpl.use(matplotlib_backend)
+        assert (matplotlib_backend in mpl.rcsetup.all_backends or matplotlib_backend is None)
+        if matplotlib_backend:
+            mpl.use(matplotlib_backend)
 
         self.qd = np.array([1, 0, 0, 0], dtype=np.float32)
         self.vmax = 30
@@ -532,7 +530,7 @@ if __name__ == "__main__":
 
     check_env(Satellite_rot(), warn=True)
     print("env checked")
-    env = gym.make("Satellite-rot-v0", render_mode="human", control="PID")
+    env = gym.make("Satellite-rot-v0", render_mode="rgb_array", control="PID",matplotlib_backend="agg")
     print("env checked")
     term = False
     rwds = 0
@@ -568,8 +566,8 @@ if __name__ == "__main__":
             rwds += reward
             if term or trunc:
                 print(term, trunc)
-                plt.imshow(env.render())
-                plt.show()
+                x=env.render()
+                # plt.imsave(f"next {j+1}.jpg",x)
                 break
     print(time.time() - t_start)
     env.close()

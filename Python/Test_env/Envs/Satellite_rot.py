@@ -1,7 +1,5 @@
 import matplotlib as mpl
 
-mpl.use("TkAgg")
-
 
 import matplotlib.pyplot as plt
 
@@ -36,7 +34,7 @@ class Satellite_rot(gym.Env):
         "observation_spaces": ["MlpPolicy", "MultiInputPolicy"],
         "control": ["Ml", "ModelPredictiveControl", "LQR", "PID", "Random", "Human"],
         "action_spaces": ["continuous", "discrete"],
-        "matplotlib_backend": ["TkAgg", "Qt5Agg", "WXAgg", "GTKAgg", "Qt4Agg"],
+        "matplotlib_backend": ["TkAgg", "Qt5Agg", "WXAgg", "GTKAgg", "Qt4Agg", "Agg"],
     }
 
     def __init__(
@@ -82,9 +80,10 @@ class Satellite_rot(gym.Env):
             matplotlib_backend in self.metadata["matplotlib_backend"]
             or matplotlib_backend is None
         )
+        mpl.use(matplotlib_backend)
 
         self.qd = np.array([1, 0, 0, 0], dtype=np.float32)
-        self.vmax = 25
+        self.vmax = 30
         self.prev_shaping = None
         self.subplots = None
 
@@ -295,15 +294,15 @@ class Satellite_rot(gym.Env):
             }
 
     def _reward_function(self, action, terminated=False):
-        reward = 0 if not terminated else -20000
-        # distance_reward = prev_distance - distance
-        # fuel_reward = prev_fuel - fuel
+        reward = 0
+        term_reward = 0 if not terminated else -100_000
 
-        shaping = self._shape_reward()
-
-        if self.prev_shaping is not None:
-            reward = shaping - self.prev_shaping
-        self.prev_shaping = shaping
+        # # Shaping Reward not used rn
+        # shaping = self._shape_reward()
+        #
+        # if self.prev_shaping is not None:
+        # reward = shaping - self.prev_shaping
+        # self.prev_shaping = shaping
 
         # Attitude Error Term
         attitude_error_term = -1e1 * np.linalg.norm(
@@ -320,8 +319,9 @@ class Satellite_rot(gym.Env):
         # smoothness_term = -0.001 * np.linalg.norm(np.gradient(angular_velocity))
 
         # Total Reward
-        reward = (
-            attitude_error_term
+        reward += (
+            term_reward
+            + attitude_error_term
             + control_effort_term
             + stability_term
             #  + smoothness_term

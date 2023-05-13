@@ -76,7 +76,9 @@ class Satellite_rot(gym.Env):
         # or render_mode in self.metadata['render_modes']
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
-        assert (matplotlib_backend in mpl.rcsetup.all_backends or matplotlib_backend is None)
+        assert (
+            matplotlib_backend in mpl.rcsetup.all_backends or matplotlib_backend is None
+        )
         if matplotlib_backend:
             mpl.use(matplotlib_backend)
 
@@ -113,7 +115,7 @@ class Satellite_rot(gym.Env):
         (eul0,) = (np.random.rand(1, 3) - 0.5) * np.pi * 2
         q0 = eul_to_quat(eul0)
         state[0:4] = q0 / np.linalg.norm(q0)
-        state[4:8] = (np.random.rand(1, 3) - 0.5) * 0
+        state[4:8] = (np.random.rand(1, 3) - 0.5) * 0.01
         self.chaser.set_state(state)
         self.prev_shaping = self._shape_reward()
         info = self._get_info()
@@ -530,7 +532,12 @@ if __name__ == "__main__":
 
     check_env(Satellite_rot(), warn=True)
     print("env checked")
-    env = gym.make("Satellite-rot-v0", render_mode="rgb_array", control="PID",matplotlib_backend="agg")
+    env = gym.make(
+        "Satellite-rot-v0",
+        render_mode="rgb_array",
+        control="PID",
+        matplotlib_backend="agg",
+    )
     print("env checked")
     term = False
     rwds = 0
@@ -566,7 +573,7 @@ if __name__ == "__main__":
             rwds += reward
             if term or trunc:
                 print(term, trunc)
-                x=env.render()
+                x = env.render()
                 # plt.imsave(f"next {j+1}.jpg",x)
                 break
     print(time.time() - t_start)

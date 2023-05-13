@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
-from Envs.Satellite import Satellite_base
+from Envs.Satellite_tra import Satellite_tra
 import gymnasium as gym
 import numpy as np
 import os
@@ -58,7 +58,7 @@ env = make_vec_env(env_name, n_envs=2)
 
 
 TIMESTEPS = 50_000
-last_model = 52
+last_model = 60
 if last_model > 0:
     model = Algo.load(
         f"{models_dir}/{Algo.name}_{last_model}",

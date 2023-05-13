@@ -74,7 +74,6 @@ class Satellite_tra(gym.Env):
             )
         # or render_mode in self.metadata['render_modes']
         assert render_mode is None or render_mode in self.metadata["render_modes"]
-        assert matplotlib_backend in self.metadata["matplotlib_backend"]
         assert matplotlib_backend in mpl.rcsetup.all_backends
         mpl.use(matplotlib_backend)
         self.render_mode = render_mode
@@ -269,6 +268,7 @@ class Satellite_tra(gym.Env):
             }
 
     def _reward_function(self, action=0, terminated=False):
+        reward = 0
         term_reward = 0 if not terminated else -100_000
 
         # Shaping Term (Not Used)
@@ -436,7 +436,9 @@ if __name__ == "__main__":
     check_env(Satellite_tra(), warn=True)
     print("env checked")
 
-    env = Satellite_tra(render_mode="rgb_array", control="PID")
+    env = Satellite_tra(
+        render_mode="rgb_array", control="PID", matplotlib_backend="agg"
+    )
     K = np.array(
         [
             [
@@ -473,17 +475,17 @@ if __name__ == "__main__":
         obs, info = env.reset()
         for i in range(steps):
             action = -np.dot(K, obs[0:6])
-            print(action)
             obs, reward, term, trunc, info = env.step(action)
             if term or steps - 1 == i:
                 x = env.render()
-                xs.append(x)
+                plt.imshow(x)
+                plt.show()
                 break
 
         print(f"next {j+1}")
         time.sleep(1)
     env.close()
-    for x in xs:
-        plt.imshow(x)
-        plt.pause(0.1)
-    time.sleep(100)
+    # for x in xs:
+    #     plt.imshow(x)
+    #     plt.pause(0.1)
+    # time.sleep(100)

@@ -2,9 +2,10 @@ ffmpegio
 gymnasium
 matplotlib
 numba==0.57.0
-numpy==1.24.3
+numpy
 opencv_contrib_python==4.6.0.66
 opencv_python==4.6.0.66
 scipy==1.10.1
 Send2Trash
 stable_baselines3==2.0.0a5
+tensorboard

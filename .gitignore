@@ -54,5 +54,5 @@ Python/Random/*
 
 
 # env, env creator
-./venv
+venv/
 oryx-build-commands.txt

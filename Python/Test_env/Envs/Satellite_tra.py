@@ -1,11 +1,11 @@
 import matplotlib as mpl
 
-mpl.use("TKAgg")
+mpl.use("TkAgg")
 import matplotlib.pyplot as plt
 
 import matplotlib.style as mplstyle
 
-mplstyle.use("fast")
+# mplstyle.use("fast")
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
@@ -23,7 +23,15 @@ class Satellite_tra(gym.Env):
         "observation_spaces": ["MlpPolicy", "MultiInputPolicy"],
         "control": ["Ml", "ModelPredictiveControl", "LQR", "PID", "Random", "Human"],
         "action_spaces": ["continuous", "discrete"],
-        "matplotlib_backend": ["TkAgg", "Qt5Agg", "Qt4Agg", "MacOSX", "WX", "GTK3"],
+        "matplotlib_backend": [
+            "TkAgg",
+            "Qt5Agg",
+            "Qt4Agg",
+            "MacOSX",
+            "WX",
+            "GTK3",
+            "Agg",  # non gui backend
+        ],
     }
 
     def __init__(
@@ -67,8 +75,9 @@ class Satellite_tra(gym.Env):
             )
         # or render_mode in self.metadata['render_modes']
         assert render_mode is None or render_mode in self.metadata["render_modes"]
-        if render_mode is not None:
-            mpl.use(matplotlib_backend)
+        assert matplotlib_backend in self.metadata["matplotlib_backend"]
+
+        mpl.use(matplotlib_backend)
         self.render_mode = render_mode
         self.subplots = None
 
@@ -80,18 +89,21 @@ class Satellite_tra(gym.Env):
         reward = 0
         info = {}
         truncated = False
-        self.chaser.move(self._action_filter(action))
+        filtered_action = self._action_filter(action)
+        self.chaser.move(filtered_action)
         terminated = self._beyond_observational_space()  # or self.chaser.fuel_mass <= 0
         observation = self._get_observation()
         reward = self._reward_function(action, terminated)
         if self.render_mode == "human" or self.render_mode == "rgb_array":
-            self._remember(self.chaser.state, action, reward, info)
+            self._remember(self.chaser.state, filtered_action, reward, info)
             if self.render_mode == "human":
                 self.render()
         return observation, reward, terminated, truncated, info
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
+        self.prev_shaping = None
+        self.subplots = None
         self.chaser = Chaser()
         state = np.zeros((6,), dtype=np.float32)
         # state[random.randint(0,2)] = random.randint(-100, 100)
@@ -111,8 +123,9 @@ class Satellite_tra(gym.Env):
         return observation, info
 
     def render(self):
-        if self.render_mode == "human" and self.times[-1] % 20 != 0:
-            plt.ion()
+        if not self.render_mode or (
+            self.render_mode == "human" and self.times[-1] % 20 != 0
+        ):
             return
         if self.subplots == None:
             fig, ax = plt.subplots(4, 3, figsize=(10, 10))
@@ -130,21 +143,45 @@ class Satellite_tra(gym.Env):
                 [
                     [[-100, 100], [-100, 100], [-100, 100]],
                     [[-0.1, 0.1], [-0.1, 0.1], [-0.1, 0.1]],
-                    [[-0.01, 0.01], [-0.01, 0.01], [-0.01, 0.01]],
+                    [[-1, 1], [-1, 1], [-1, 1]],
                     [[-2, 0.3], [-100, 1], [-1, 1]],
                 ]
             )
-            (lines[0, 0],) = ax[0, 0].plot(self.times, self.statuses[:, 0])
-            (lines[0, 1],) = ax[0, 1].plot(self.times, self.statuses[:, 1])
-            (lines[0, 2],) = ax[0, 2].plot(self.times, self.statuses[:, 2])
-            (lines[1, 0],) = ax[1, 0].plot(self.times, self.statuses[:, 3])
-            (lines[1, 1],) = ax[1, 1].plot(self.times, self.statuses[:, 4])
-            (lines[1, 2],) = ax[1, 2].plot(self.times, self.statuses[:, 5])
-            (lines[2, 0],) = ax[2, 0].plot(self.times[:-1], self.actions[:, 0])
-            (lines[2, 1],) = ax[2, 1].plot(self.times[:-1], self.actions[:, 1])
-            (lines[2, 2],) = ax[2, 2].plot(self.times[:-1], self.actions[:, 2])
-            (lines[3, 0],) = ax[3, 0].plot(self.times[:-1], self.rewards[:])
-            (lines[3, 1],) = ax[3, 1].plot(self.times[:-1], self.rewards_sum[:])
+            limits[2, :] = limits[2, :] * Chaser.Tmax
+            line_width = 0.6
+            (lines[0, 0],) = ax[0, 0].plot(
+                self.times, self.statuses[:, 0], linewidth=line_width
+            )
+            (lines[0, 1],) = ax[0, 1].plot(
+                self.times, self.statuses[:, 1], linewidth=line_width
+            )
+            (lines[0, 2],) = ax[0, 2].plot(
+                self.times, self.statuses[:, 2], linewidth=line_width
+            )
+            (lines[1, 0],) = ax[1, 0].plot(
+                self.times, self.statuses[:, 3], linewidth=line_width
+            )
+            (lines[1, 1],) = ax[1, 1].plot(
+                self.times, self.statuses[:, 4], linewidth=line_width
+            )
+            (lines[1, 2],) = ax[1, 2].plot(
+                self.times, self.statuses[:, 5], linewidth=line_width
+            )
+            (lines[2, 0],) = ax[2, 0].plot(
+                self.times[:-1], self.actions[:, 0], linewidth=line_width
+            )
+            (lines[2, 1],) = ax[2, 1].plot(
+                self.times[:-1], self.actions[:, 1], linewidth=line_width
+            )
+            (lines[2, 2],) = ax[2, 2].plot(
+                self.times[:-1], self.actions[:, 2], linewidth=line_width
+            )
+            (lines[3, 0],) = ax[3, 0].plot(
+                self.times[:-1], self.rewards[:], linewidth=line_width
+            )
+            (lines[3, 1],) = ax[3, 1].plot(
+                self.times[:-1], self.rewards_sum[:], linewidth=line_width
+            )
             # (lines[3, 2],) = ax[3, 2].plot(self.times, self.rewards[:, 2])
 
             for idx, x in np.ndenumerate(ax):
@@ -155,7 +192,11 @@ class Satellite_tra(gym.Env):
                 if idx[0] != 3 and idx[1] != 0:
                     ax[idx[0], idx[1]].sharey(ax[idx[0], idx[1] - 1])
             plt.grid()
-            plt.show(block=False)
+            if self.render_mode == "human":
+                plt.ion()
+                plt.show(block=False)
+            else:
+                plt.ioff()
             self.subplots = (fig, ax, lines)
 
         else:
@@ -172,7 +213,7 @@ class Satellite_tra(gym.Env):
             lines[3, 0].set_data(self.times[:-1], self.rewards[:])
             lines[3, 1].set_data(self.times[:-1], self.rewards_sum[:])
 
-        mplstyle.use("fast")
+        # mplstyle.use("fast")
 
         for idx, x in np.ndenumerate(ax):
             ax[idx[0], idx[1]].relim(visible_only=True)
@@ -195,9 +236,10 @@ class Satellite_tra(gym.Env):
         # loop until all UI events
         # currently waiting have been processed
         fig.canvas.flush_events()
-
         if self.render_mode == "rgb_array":
+            fig.canvas.draw()
             return np.array(fig.canvas.renderer.buffer_rgba())[:, :, :3]
+
         # if self.render_mode == "human":
         # fig.show()
 
@@ -402,8 +444,9 @@ if __name__ == "__main__":
     from stable_baselines3.common.env_checker import check_env
 
     check_env(Satellite_tra(), warn=True)
+    print("env checked")
 
-    env = Satellite_tra(render_mode="rgb_array")
+    env = Satellite_tra(render_mode="rgb_array", control="PID")
     K = np.array(
         [
             [
@@ -432,9 +475,25 @@ if __name__ == "__main__":
             ],
         ]
     )
-    for i in range(10):
+    import time
+
+    steps = 10000
+    xs = []
+    for j in range(3):
         obs, info = env.reset()
-        for i in range(10000):
-            obs, reward, term, trunc, info = env.step(np.dot(-K, obs[0:6]))
-        plt.imshow(env.render())
-        env.close()
+        for i in range(steps):
+            action = -np.dot(K, obs[0:6])
+            print(action)
+            obs, reward, term, trunc, info = env.step(action)
+            if term or steps - 1 == i:
+                x = env.render()
+                xs.append(x)
+                break
+
+        print(f"next {j+1}")
+        time.sleep(1)
+    env.close()
+    for x in xs:
+        plt.imshow(x)
+        plt.pause(0.1)
+    time.sleep(100)

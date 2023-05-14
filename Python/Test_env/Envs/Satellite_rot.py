@@ -115,7 +115,7 @@ class Satellite_rot(gym.Env):
         (eul0,) = (np.random.rand(1, 3) - 0.5) * np.pi * 2
         q0 = eul_to_quat(eul0)
         state[0:4] = q0 / np.linalg.norm(q0)
-        state[4:8] = (np.random.rand(1, 3) - 0.5) * 0.01
+        state[4:8] = (np.random.rand(1, 3) - 0.5) * 0.8
         self.chaser.set_state(state)
         self.prev_shaping = self._shape_reward()
         info = self._get_info()
@@ -137,14 +137,14 @@ class Satellite_rot(gym.Env):
         ):
             return
         if self.subplots == None:
-            fig, ax = plt.subplots(4, 3, figsize=(10, 10))
+            fig, ax = plt.subplots(4, 3, figsize=(10, 10), layout="constrained")
             lines = np.ma.zeros_like(ax)
             legend = np.array(
                 [
                     ["roll", "pitch", "yaw"],
                     ["roll_speed", "pitch_speed", "yaw_speed"],
                     ["ux", "uy", "uz"],
-                    ["reward", "reward_sum", ""],
+                    ["reward", "reward_sum", "Quat norm"],
                 ]
             )
             limits = np.array(
@@ -232,7 +232,7 @@ class Satellite_rot(gym.Env):
         for idx, x in np.ndenumerate(ax):
             ax[idx[0], idx[1]].relim(visible_only=True)
             if idx[0] % 2 != 0:
-                ax[idx[0], idx[1]].autoscale(enable=True, axis="y", tight=True)
+                ax[idx[0], idx[1]].autoscale(enable=True, axis="y", tight=False)
             ax[idx[0], idx[1]].autoscale(enable=True, axis="x", tight=True)
 
         blit = True
@@ -263,7 +263,9 @@ class Satellite_rot(gym.Env):
         return
 
     def close(self):
-        return super().close()
+        super().close()
+        plt.close(self.subplots[0])
+        return
 
     def _remember(self, sta, act, rew, inf={}):
         self.statuses = np.vstack((self.statuses, sta))
@@ -305,15 +307,15 @@ class Satellite_rot(gym.Env):
         # self.prev_shaping = shaping
 
         # Attitude Error Term
-        attitude_error_term = -1e1 * np.linalg.norm(
+        attitude_error_term = -1e0 * np.linalg.norm(
             self.chaser.quat_track_err(self.chaser.state[:4], self.qd)[1:]
         )
 
         # Control Effort Term
-        control_effort_term = -1e-1 * np.sum(np.abs(action))
+        control_effort_term = -1e-2 * np.sum(np.abs(action))
 
         # Stability Term
-        stability_term = -1e-2 * np.dot(self.chaser.state[4:8], self.chaser.state[4:8])
+        stability_term = -1e-1 * np.dot(self.chaser.state[4:8], self.chaser.state[4:8])
 
         # Smoothness Term
         # smoothness_term = -0.001 * np.linalg.norm(np.gradient(angular_velocity))
@@ -516,6 +518,55 @@ def quaternion_to_euler(q):
     return [yaw, pitch, roll]
 
 
+def test_env():
+    env = gym.make(
+        "Satellite-rot-v0",
+        render_mode="human",
+        control="PID",
+        matplotlib_backend="TkAgg",
+    )
+    print("env checked")
+    term = False
+    rwds = 0
+    t_start = time.time()
+    steps = 1000
+    ep = 1
+    for j in range(ep):
+        print("ep", j)
+        obs, info = env.reset()
+        while True:
+            action = Chaser.quaternion_err_rate(obs[0:4], info["qd"], w=obs[4:8])
+            # action = env.action_space.sample()
+            # action = np.array([0, 1, 0])
+            obs, reward, term, trunc, info = env.step(action)
+            # print(obs)
+
+            # if (
+            #     type(obs) != np.ndarray
+            #     or type(info) != dict
+            #     or type(action) != np.ndarray
+            #     or type(reward) != float
+            #     or type(term) != bool
+            #     or type(trunc) != bool
+            # ):
+            #     print(type(obs))
+            #     print(type(info))
+            #     print(type(action))
+            #     print(type(reward))
+            #     print(type(term))
+            #     print(type(trunc))
+            #     print("type error")
+            #     time.sleep(5)
+            rwds += reward
+            if term or trunc:
+                print(term, trunc)
+                x = env.render()
+                # plt.imsave(f"next {j+1}.jpg",x)
+                break
+    print(time.time() - t_start)
+    env.close()
+
+
 if __name__ == "__main__":
     from stable_baselines3 import PPO
     from stable_baselines3.common.env_util import make_vec_env
@@ -532,49 +583,12 @@ if __name__ == "__main__":
 
     check_env(Satellite_rot(), warn=True)
     print("env checked")
-    env = gym.make(
-        "Satellite-rot-v0",
-        render_mode="rgb_array",
-        control="PID",
-        matplotlib_backend="agg",
-    )
-    print("env checked")
-    term = False
-    rwds = 0
-    t_start = time.time()
-    steps = 1000
-    ep = 2
-    for j in range(ep):
-        print("ep", j)
-        obs, info = env.reset()
-        while True:
-            action = Chaser.quaternion_err_rate(obs[0:4], info["qd"], w=obs[4:8])
-            # action = env.action_space.sample()
-            # action = np.array([0, 1, 0])
-            obs, reward, term, trunc, info = env.step(action)
-            # print(obs)
 
-            if (
-                type(obs) != np.ndarray
-                or type(info) != dict
-                or type(action) != np.ndarray
-                or type(reward) != float
-                or type(term) != bool
-                or type(trunc) != bool
-            ):
-                print(type(obs))
-                print(type(info))
-                print(type(action))
-                print(type(reward))
-                print(type(term))
-                print(type(trunc))
-                print("type error")
-                time.sleep(5)
-            rwds += reward
-            if term or trunc:
-                print(term, trunc)
-                x = env.render()
-                # plt.imsave(f"next {j+1}.jpg",x)
-                break
-    print(time.time() - t_start)
-    env.close()
+    import cProfile
+    import profile
+    import re
+
+    # profile.run("test_env()", "restats")
+    # profile.run("test_env()", "restats")
+    test_env()
+    print("end")

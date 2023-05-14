@@ -25,11 +25,27 @@ env_name = "Satellite-rot-v0"
 Algo = PPO
 Algo.name = "PPO"
 # ENT = 0.01
+use_last_model = False
 
+if use_last_model:
+    if "MODEL_DATE" not in os.environ:
+        raise ValueError("MODEL_DATE not in os.environ")
+    if "MODEL_NUM" not in os.environ:
+        raise ValueError("MODEL_NUM not in os.environ")
+    date = os.environ["MODEL_DATE"]
+    last_model = int(os.environ["MODEL_NUM"])
 
-models_dir = f"models/{env_name}/{Algo.name}"
-logdir = f"logs/{env_name}/{Algo.name}"
-imgs_dir = f"imgs/{env_name}/{Algo.name}"
+if not use_last_model:
+    date = time.strftime("%m_%d_%H_%M", time.localtime())
+    os.environ["MODEL_DATE"] = date
+    last_model = 0
+
+print({"date": date, "last_model": last_model})
+time.sleep(5)
+
+models_dir = f"models/{env_name}/{date}/{Algo.name}"
+logdir = f"logs/{env_name}/{date}/{Algo.name}"
+imgs_dir = f"imgs/{env_name}/{date}/{Algo.name}"
 
 os.makedirs(models_dir, exist_ok=True)
 os.makedirs(logdir, exist_ok=True)
@@ -54,7 +70,7 @@ def run_episode(
             break
 
 
-env = make_vec_env(env_name, n_envs=2)
+env = make_vec_env(env_name, n_envs=int(os.cpu_count() / 2))
 # env = gym.make(env_name)
 
 
@@ -69,9 +85,9 @@ if last_model > 0:
         tensorboard_log=logdir,
     )
 else:
-    input("Press Enter to delete logs and models")
-    send2trash.send2trash(f"{logdir}/")
-    send2trash.send2trash(f"{models_dir}/")
+    # input("Press Enter to delete logs and models")
+    # send2trash.send2trash(f"{logdir}/")
+    # send2trash.send2trash(f"{models_dir}/")
     model = Algo(
         "MlpPolicy",
         env=env,
@@ -79,7 +95,7 @@ else:
         # ent_coef=ENT,
         tensorboard_log=logdir,
     )
-episodes = 100
+episodes = 300
 run_episode(
     model,
     env_name=env_name,
@@ -99,6 +115,7 @@ for i in range(last_model + 1, last_model + episodes + 1):
     )
     model.save(f"{models_dir}/{Algo.name}_{i}")
     last_model = i
+    os.environ["MODEL_NUM"] = str(last_model)
     mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=2)
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
     run_episode(

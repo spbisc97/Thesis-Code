@@ -83,7 +83,7 @@ class Satellite_tra(gym.Env):
             mpl.use(matplotlib_backend)
         self.subplots = None
 
-        self.dmax = 50000
+        self.dmax = 40000
         self.vmax = 2000
         self.prev_shaping = None
 
@@ -121,6 +121,7 @@ class Satellite_tra(gym.Env):
             self.rewards = np.array([]).reshape(0, 1)
             self.rewards_sum = np.array([]).reshape(0, 1)
             self.infos = np.array(info)
+            self.fuels = np.array([self.chaser.fuel_mass])
             self.times = np.array([0])
         return observation, info
 
@@ -130,7 +131,7 @@ class Satellite_tra(gym.Env):
         ):
             return
         if self.subplots == None:
-            fig, ax = plt.subplots(4, 3, figsize=(10, 10))
+            fig, ax = plt.subplots(4, 3, figsize=(10, 10),layout="constrained")
             fig.add_gridspec(hspace=30)
             lines = np.ma.zeros_like(ax)
             legend = np.array(
@@ -138,7 +139,7 @@ class Satellite_tra(gym.Env):
                     ["x", "y", "z"],
                     ["vx", "vy", "vz"],
                     ["ux", "uy", "uz"],
-                    ["reward", "reward_sum", ""],
+                    ["reward", "reward_sum", "Fuel"],
                 ]
             )
             limits = np.array(
@@ -184,7 +185,7 @@ class Satellite_tra(gym.Env):
             (lines[3, 1],) = ax[3, 1].plot(
                 self.times[:-1], self.rewards_sum[:], linewidth=line_width
             )
-            # (lines[3, 2],) = ax[3, 2].plot(self.times, self.rewards[:, 2])
+            (lines[3, 2],) = ax[3, 2].plot(self.times, self.fuels, linewidth=line_width)
 
             for idx, x in np.ndenumerate(ax):
                 # ax[idx[0], idx[1]].set_xlim(0, 100)
@@ -214,6 +215,7 @@ class Satellite_tra(gym.Env):
             lines[2, 2].set_data(self.times[:-1], self.actions[:, 2])
             lines[3, 0].set_data(self.times[:-1], self.rewards[:])
             lines[3, 1].set_data(self.times[:-1], self.rewards_sum[:])
+            lines[3, 2].set_data(self.times, self.fuels)
 
         # mplstyle.use("fast")
 
@@ -261,6 +263,7 @@ class Satellite_tra(gym.Env):
         self.rewards_sum = np.vstack((self.rewards_sum, prev_rewards + rew))
         self.infos = np.vstack((self.infos, inf))
         self.times = np.vstack((self.times, self.times[-1] + self.chaser.step))
+        self.fuels = np.vstack((self.fuels, self.chaser.fuel_mass))
         return
 
     def _get_observation(self):
@@ -289,10 +292,10 @@ class Satellite_tra(gym.Env):
         # self.prev_shaping = shaping
 
         # Position Error Term
-        log_position_error_term = np.log(np.linalg.norm(self.chaser.state[:3]) + 1e-9)
+        log_position_error_term = np.log(np.linalg.norm(self.chaser.state[:3]) + 1e-1)
 
         # Control Effort Term
-        control_effort_term = 0.1 * np.linalg.norm(action)
+        control_effort_term = 0.3 * np.linalg.norm(action)
 
         reward += term_reward - log_position_error_term - control_effort_term
 

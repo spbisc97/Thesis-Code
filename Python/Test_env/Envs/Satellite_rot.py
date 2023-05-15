@@ -162,7 +162,7 @@ class Satellite_rot(gym.Env):
                     [[-2, 0.3], [-100, 1], [0.5, 1.5]],
                 ]
             )
-            limits[2, :] = limits[2, :] * Chaser.Tmax
+            limits[2, :] = limits[2, :] * (Chaser.Tmax * (1.05))
             # rescale = np.array(
             #     [
             #         [False, False, False],

@@ -8,6 +8,7 @@ import matplotlib.style as mplstyle
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
+from scipy.integrate import odeint, solve_ivp
 from numba import jit  # or try codonpy instead
 import random
 
@@ -39,7 +40,7 @@ class Satellite_tra(gym.Env):
         observation_space="MlpPolicy",
         action_space="continuous",
         control="Ml",
-        matplotlib_backend="TkAgg",
+        matplotlib_backend=None,
     ):
         super(Satellite_tra, self).__init__()
         # define action and observation space being gymnasium.spaces
@@ -74,9 +75,12 @@ class Satellite_tra(gym.Env):
             )
         # or render_mode in self.metadata['render_modes']
         assert render_mode is None or render_mode in self.metadata["render_modes"]
-        assert matplotlib_backend in mpl.rcsetup.all_backends
-        mpl.use(matplotlib_backend)
         self.render_mode = render_mode
+        assert (matplotlib_backend in mpl.rcsetup.all_backends) or (
+            matplotlib_backend is None
+        )
+        if matplotlib_backend:
+            mpl.use(matplotlib_backend)
         self.subplots = None
 
         self.dmax = 50000
@@ -243,6 +247,12 @@ class Satellite_tra(gym.Env):
 
         return
 
+    def close(self):
+        super().close()
+        if self.subplots:
+            plt.close(self.subplots[0])
+        return
+
     def _remember(self, sta, act, rew, inf={}):
         self.statuses = np.vstack((self.statuses, sta))
         self.actions = np.vstack((self.actions, act))
@@ -293,8 +303,8 @@ class Satellite_tra(gym.Env):
         return shaping
 
     def _beyond_observational_space(self):
-        if np.any(np.abs(self.chaser.state[:3]) >= self.dmax) or np.any(
-            np.abs(self.chaser.state[3:]) >= self.vmax
+        if np.any(np.abs(self.chaser.state[0:3]) >= self.dmax) or np.any(
+            np.abs(self.chaser.state[3:6]) >= self.vmax
         ):
             return True
         return False
@@ -334,9 +344,10 @@ class Chaser:
         self.state = np.float32(state)
         return self.state
 
-    def _Sat_Translational_Dyn(self, y, t, trust):
+    def _Sat_Translational_Dyn(self, t, y, trust):
         dy = np.zeros(
             6,
+            dtype=np.float32,
         )
         torques = trust.copy()
 
@@ -365,9 +376,10 @@ class Chaser:
 
         return dy
 
-    def _Sat_Translational_Linear_Dyn(self, y, t, trust):
+    def _Sat_Translational_Linear_Dyn(self, t, y, trust):
         dy = np.zeros(
             6,
+            dtype=np.float32,
         )
         torques = trust.copy()
 
@@ -399,8 +411,19 @@ class Chaser:
     def move(self, trust):
         trust = np.clip(trust, -Chaser.Tmax, Chaser.Tmax)
         self.state = self._rk4(
-            self._Sat_Translational_Dyn, self.state, self.dt, args=(trust,)
+            self._Sat_Translational_Dyn, self.step, self.state, args=(trust,)
         )
+
+        #! there is no need to use a more precise integrator
+        # sol = solve_ivp(
+        # self._Sat_Translational_Dyn,
+        # (0, self.step),
+        # self.state,
+        # args=(trust,),
+        # method="RK45",
+        # )
+        # self.state = sol.y[:, -1].astype(np.float32)
+
         self.fuel_mass = (
             self.fuel_mass - np.sum(np.abs(trust)) / (self.g * self.Isp) * self.dt
         )
@@ -413,7 +436,7 @@ class Chaser:
         return np.linalg.norm(self.state[3:6])
 
     # @jit
-    def _rk4(self, f, y0, t, args=()):
+    def _rk4(self, f, t_len, y0, args=()):
         N = int(self.step / self.dt)
         t = np.linspace(0, self.step, N + 1, dtype=np.float32)
         n = len(t)
@@ -421,23 +444,43 @@ class Chaser:
         y[0] = y0
         for i in range(n - 1):
             h = t[i + 1] - t[i]
-            k1 = f(y[i], t[i], *args)
-            k2 = f(y[i] + k1 * h / 2.0, t[i] + h / 2.0, *args)
-            k3 = f(y[i] + k2 * h / 2.0, t[i] + h / 2.0, *args)
-            k4 = f(y[i] + k3 * h, t[i] + h, *args)
+            k1 = f(t[i], y[i], *args)
+            k2 = f(t[i] + h / 2.0, y[i] + k1 * h / 2.0, *args)
+            k3 = f(t[i] + h / 2.0, y[i] + k2 * h / 2.0, *args)
+            k4 = f(t[i] + h, y[i] + k3 * h, *args)
             y[i + 1] = y[i] + (h / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
         return y[-1]
 
 
-if __name__ == "__main__":
-    # Q_main()
-    from stable_baselines3.common.env_checker import check_env
+def snakeviz_profiler(fun):
+    import cProfile as profile
+    import os
 
-    check_env(Satellite_tra(), warn=True)
-    print("env checked")
+    prof = profile.Profile()
+    prof.enable()
+    fun()
+    prof.disable()
+    prof.dump_stats("test_env.prof")
+    import os
 
-    env = Satellite_tra(
-        render_mode="rgb_array", control="PID", matplotlib_backend="agg"
+    os.system("snakeviz test_env.prof")
+
+
+def pstats_profiler(fun):
+    import cProfile as profile
+    import pstats
+
+    prof = profile.Profile()
+    prof.enable()
+    fun()
+    prof.disable()
+    stats = pstats.Stats(prof).strip_dirs().sort_stats("cumtime")
+    stats.print_stats(100)  # top 100 rows
+
+
+def test_env():
+    env = gym.make(
+        "Satellite-tra-v0", render_mode=None, control="PID", matplotlib_backend=None
     )
     K = np.array(
         [
@@ -469,23 +512,31 @@ if __name__ == "__main__":
     )
     import time
 
-    steps = 10000
-    xs = []
-    for j in range(3):
+    ep = 1
+    for j in range(ep):
         obs, info = env.reset()
-        for i in range(steps):
+        while True:
             action = -np.dot(K, obs[0:6])
             obs, reward, term, trunc, info = env.step(action)
-            if term or steps - 1 == i:
+            if term or trunc:
                 x = env.render()
-                plt.imshow(x)
-                plt.show()
                 break
 
         print(f"next {j+1}")
-        time.sleep(1)
     env.close()
-    # for x in xs:
-    #     plt.imshow(x)
-    #     plt.pause(0.1)
-    # time.sleep(100)
+
+
+if __name__ == "__main__":
+    from stable_baselines3.common.env_checker import check_env
+    from gymnasium.envs.registration import register
+
+    check_env(Satellite_tra(), warn=True)
+    print("env checked")
+    register(
+        id="Satellite-tra-v0",
+        entry_point="Satellite_tra:Satellite_tra",
+        max_episode_steps=10000,
+        reward_threshold=0.0,
+    )
+
+    snakeviz_profiler(test_env)

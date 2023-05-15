@@ -67,7 +67,7 @@ def run_episode(
     env = gym.make(env_name, render_mode="rgb_array")
     obs, info = env.reset()
     while not term:
-        action, _states = model.predict(obs)
+        action, _states = model.predict(obs, deterministic=True)
         obs, reward, term, trunc, info = env.step(action)
         if term or trunc:
             X = env.render()
@@ -112,7 +112,9 @@ run_episode(
     model_timesteps=model.num_timesteps,
     args=(),
 )
-mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=2)
+mean_reward, std_reward = evaluate_policy(
+    model, env, n_eval_episodes=2, deterministic=True
+)
 print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
 for i in range(last_model + 1, last_model + episodes + 1):
     model.learn(
@@ -123,7 +125,9 @@ for i in range(last_model + 1, last_model + episodes + 1):
     )
     model.save(f"{models_dir}/{Algo.name}_{i}")
     last_model = i
-    mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=2)
+    mean_reward, std_reward = evaluate_policy(
+        model, env, n_eval_episodes=2, deterministic=True
+    )
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
     run_episode(
         model,

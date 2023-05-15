@@ -27,6 +27,11 @@ import warnings
 # ? Maybe it's better to use a continuous action space?
 # ? Maybe it's better to use a continuous action space with a discrete action space?
 
+I = np.diag(np.array([8.33e-2, 1.08e-1, 4.17e-2], dtype=np.float32))
+invI = np.diag(
+    np.array([12.0048019207683, 9.25925925925926, 23.9808153477218], dtype=np.float32)
+)
+
 
 class Satellite_rot(gym.Env):
     metadata = {
@@ -115,7 +120,7 @@ class Satellite_rot(gym.Env):
         (eul0,) = (np.random.rand(1, 3) - 0.5) * np.pi * 2
         q0 = eul_to_quat(eul0)
         state[0:4] = q0 / np.linalg.norm(q0)
-        state[4:8] = (np.random.rand(1, 3) - 0.5) * 0.8
+        state[4:8] = (np.random.rand(1, 3) - 0.5) * 0.5
         self.chaser.set_state(state)
         self.prev_shaping = self._shape_reward()
         info = self._get_info()
@@ -137,6 +142,8 @@ class Satellite_rot(gym.Env):
         ):
             return
         if self.subplots == None:
+            if self.render_mode == "human":
+                plt.ion()
             fig, ax = plt.subplots(4, 3, figsize=(10, 10), layout="constrained")
             lines = np.ma.zeros_like(ax)
             legend = np.array(
@@ -257,14 +264,13 @@ class Satellite_rot(gym.Env):
             fig.canvas.draw()
             return np.array(fig.canvas.renderer.buffer_rgba())[:, :, :3]
         # if self.render_mode == "human":
-        fig.show()
-        plt.ion()
 
         return
 
     def close(self):
         super().close()
-        plt.close(self.subplots[0])
+        if self.subplots:
+            plt.close(self.subplots[0])
         return
 
     def _remember(self, sta, act, rew, inf={}):
@@ -381,25 +387,44 @@ class Chaser:
         self.state = np.float32(state)
         return self.state
 
-    def _Sat_Rotational_Dyn(self, t, y, trust):
+    @staticmethod  # make this static to compile with numba, and prevent cross slow down
+    @jit(nopython=True)  # 1/30 of the time when compiled (mostly becaus of cross)
+    def _Sat_Rotational_Dyn(t, y, trust):
+        def vel_omega(w):
+            return np.array(
+                [
+                    [0, -w[0], -w[1], -w[2]],
+                    [w[0], 0, w[2], -w[1]],
+                    [w[1], -w[2], 0, w[0]],
+                    [w[2], w[1], -w[0], 0],
+                ],
+                dtype=np.float32,
+            )
+
         dy = np.zeros(7, dtype=np.float32)
-        q = y[0:4]
-        w = y[4:8]
+        q = y[0:4].astype(np.float32)
+        w = y[4:8].astype(np.float32)
 
-        torques = trust.copy()  # + noise
+        torques = trust  # + noise
 
-        ep = 1 - np.dot(q, q)
+        ep = 1 - q @ q
 
         K = 0.1  # needed for stability at high velocities
-        w0 = np.hstack((0, w), dtype=np.float32)
-        dy[0:4] = 0.5 * self.omega(w0) @ q + K * ep * q
+        # w0 = np.hstack((0, w), dtype=np.float32)
+        # dy[0:4] = 0.5 * Chaser.omega(w0) @ q + K * ep * q
+
+        #! the inlining saves 1 second per episode
+
+        dy[0:4] = 0.5 * (vel_omega(w) @ q) + K * ep * q
         # q = q / np.linalg.norm(q) to keep norm=1
-        dy[4:] = self.invI @ (torques - np.cross(w, np.dot(self.I, w)))
+        dy[4:] = invI @ (torques - np.cross(w, I @ w))
+
+        # cross slows down the simulation a lot
 
         return dy
 
-    @staticmethod
     @jit(nopython=True)
+    @staticmethod
     def omega(q):
         mat = np.array(
             [
@@ -418,7 +443,7 @@ class Chaser:
         # self._Sat_Rotational_Dyn, self.step, self.state, args=(trust,)
         # )
         k = solve_ivp(
-            self._Sat_Rotational_Dyn,
+            Chaser._Sat_Rotational_Dyn,
             [0, self.step],
             self.state,
             args=(trust,),
@@ -446,25 +471,25 @@ class Chaser:
     @staticmethod
     def quaternion_err_rate(q1, qd, w=np.array([0, 0, 0]), wd=np.array([0, 0, 0])):
         q_e = Chaser.quat_track_err(q1, qd)
-        p = -q_e[1:4] / (1 - np.dot(q_e[1:4], q_e[1:4]))
+        p = -q_e[1:4] / (1.5 - np.dot(q_e[1:4], q_e[1:4]))
         d = wd - w
-        kp = 0.5 * 1e-5 * Chaser.invI
-        kd = 40 * 1e-5 * Chaser.invI
-        u = kp @ p + kd @ d
+        kp = 0.3 * 1e-3
+        kd = 10 * 1e-3
+        u = kp * p + kd * d
         return u
 
     @staticmethod
     def quat_track_err(q1, qd):
         q_inv = Chaser.quat_inv(qd)
         e = Chaser.omega(q_inv) @ q1  # equal to quaternion_multiply(q1,qd_inv)):
-        e_norm = np.linalg.norm(e)
-        if e_norm > 1.2 or e_norm < 0.8:
-            print("error_norm_error")
-            e = e / np.linalg.norm(e)
+        # e_norm = np.linalg.norm(e)
+        # if e_norm > 1.2 or e_norm < 0.8:
+        # print("error_norm_error")
+        # e = e / np.linalg.norm(e)
         return e
 
-    @staticmethod
     @jit(nopython=True)
+    @staticmethod
     def quat_inv(q):
         # shouldnt be needed the denominator is always 1
         den = np.dot(q, q)
@@ -483,7 +508,7 @@ def eul_to_quat(eul):
       :param yaw: The yaw (rotation around z-axis) angle in radians.
 
     Output
-      :return qx, qy, qz, qw: The orientation in quaternion [x,y,z,w] format
+      :return qw,qx, qy, qz: The orientation in quaternion [x,y,z,w] format
     """
     yaw, pitch, roll = eul
     qx = np.sin(roll / 2) * np.cos(pitch / 2) * np.cos(yaw / 2) - np.cos(
@@ -515,15 +540,15 @@ def quaternion_to_euler(q):
     t3 = +2.0 * (w * z + x * y)
     t4 = +1.0 - 2.0 * (y * y + z * z)
     yaw = np.arctan2(t3, t4)
-    return [yaw, pitch, roll]
+    return [roll, pitch, yaw]
 
 
 def test_env():
     env = gym.make(
         "Satellite-rot-v0",
-        render_mode="human",
+        render_mode=None,
         control="PID",
-        matplotlib_backend="TkAgg",
+        matplotlib_backend=None,
     )
     print("env checked")
     term = False
@@ -567,6 +592,32 @@ def test_env():
     env.close()
 
 
+def snakeviz_profiler(fun):
+    import cProfile as profile
+    import os
+
+    prof = profile.Profile()
+    prof.enable()
+    fun()
+    prof.disable()
+    prof.dump_stats("test_env.prof")
+    import os
+
+    os.system("snakeviz test_env.prof")
+
+
+def pstats_profiler(fun):
+    import cProfile as profile
+    import pstats
+
+    prof = profile.Profile()
+    prof.enable()
+    fun()
+    prof.disable()
+    stats = pstats.Stats(prof).strip_dirs().sort_stats("cumtime")
+    stats.print_stats(100)  # top 100 rows
+
+
 if __name__ == "__main__":
     from stable_baselines3 import PPO
     from stable_baselines3.common.env_util import make_vec_env
@@ -584,11 +635,4 @@ if __name__ == "__main__":
     check_env(Satellite_rot(), warn=True)
     print("env checked")
 
-    import cProfile
-    import profile
-    import re
-
-    # profile.run("test_env()", "restats")
-    # profile.run("test_env()", "restats")
-    test_env()
-    print("end")
+    snakeviz_profiler(test_env)

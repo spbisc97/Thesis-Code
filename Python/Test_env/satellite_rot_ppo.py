@@ -11,9 +11,20 @@ from Envs.Satellite_rot import Satellite_rot
 import gymnasium as gym
 import numpy as np
 import os
-import send2trash
+
+# import send2trash
 import time
-import ffmpegio
+
+# import ffmpegio
+
+
+def fill_reward_file(imgs_dir: str):
+    import inspect
+
+    rewfile = open(f"{imgs_dir}/Reward.md", "w")
+    print("```{python}", file=rewfile)
+    print(inspect.getsource(Satellite_rot._reward_function), file=rewfile)
+    print("```", file=rewfile)
 
 
 file_path = os.path.dirname(__file__)
@@ -25,19 +36,14 @@ env_name = "Satellite-rot-v0"
 Algo = PPO
 Algo.name = "PPO"
 # ENT = 0.01
-use_last_model = False
+use_last_model = True
 
 if use_last_model:
-    if "MODEL_DATE" not in os.environ:
-        raise ValueError("MODEL_DATE not in os.environ")
-    if "MODEL_NUM" not in os.environ:
-        raise ValueError("MODEL_NUM not in os.environ")
-    date = os.environ["MODEL_DATE"]
-    last_model = int(os.environ["MODEL_NUM"])
+    date = input("Insert date: ")
+    last_model = int(input("Insert model number: "))
 
 if not use_last_model:
     date = time.strftime("%m_%d_%H_%M", time.localtime())
-    os.environ["MODEL_DATE"] = date
     last_model = 0
 
 print({"date": date, "last_model": last_model})
@@ -50,6 +56,8 @@ imgs_dir = f"imgs/{env_name}/{date}/{Algo.name}"
 os.makedirs(models_dir, exist_ok=True)
 os.makedirs(logdir, exist_ok=True)
 os.makedirs(imgs_dir, exist_ok=True)
+
+fill_reward_file(imgs_dir)
 
 
 def run_episode(
@@ -68,14 +76,14 @@ def run_episode(
             )
             term = False
             break
+    env.close()
 
 
-env = make_vec_env(env_name, n_envs=int(os.cpu_count() / 2))
+env = make_vec_env(env_name, n_envs=int(os.cpu_count()))
 # env = gym.make(env_name)
 
 
 TIMESTEPS = 50_000
-last_model = 0
 if last_model > 0:
     model = Algo.load(
         f"{models_dir}/{Algo.name}_{last_model}",
@@ -104,7 +112,7 @@ run_episode(
     model_timesteps=model.num_timesteps,
     args=(),
 )
-mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=1)
+mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=2)
 print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
 for i in range(last_model + 1, last_model + episodes + 1):
     model.learn(
@@ -115,7 +123,6 @@ for i in range(last_model + 1, last_model + episodes + 1):
     )
     model.save(f"{models_dir}/{Algo.name}_{i}")
     last_model = i
-    os.environ["MODEL_NUM"] = str(last_model)
     mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=2)
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
     run_episode(

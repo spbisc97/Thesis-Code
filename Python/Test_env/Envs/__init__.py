@@ -1,5 +1,13 @@
 from gymnasium.envs.registration import register
 
+from Envs.Snake_v0 import SnakeEnv
+from Envs.Satellite_rot import Satellite_rot
+from Envs.Satellite_tra import Satellite_tra
+
+__al__ = ["SnakeEnv", "Satellite_rot", "Satellite_tra"]
+
+__version__ = "0.0.1"
+
 register(
     id="Snake-v0",
     entry_point="Envs.Snake_v0:SnakeEnv",
@@ -20,7 +28,7 @@ register(
 register(
     id="Satellite-rot-v0",
     entry_point="Envs.Satellite_rot:Satellite_rot",
-    max_episode_steps=10000,
+    max_episode_steps=5000,  # pretty fast
     reward_threshold=0.0,
 )
 register(

@@ -8,9 +8,20 @@ from Envs.Satellite_tra import Satellite_tra
 import gymnasium as gym
 import numpy as np
 import os
-import send2trash
+
+# import send2trash
 import time
-import ffmpegio
+
+# import ffmpegio
+
+
+def fill_reward_file(imgs_dir: str):
+    import inspect
+
+    rewfile = open(f"{imgs_dir}/Reward.md", "w")
+    print("```{python}", file=rewfile)
+    print(inspect.getsource(Satellite_tra._reward_function), file=rewfile)
+    print("```", file=rewfile)
 
 
 file_path = os.path.dirname(__file__)
@@ -23,14 +34,28 @@ Algo = PPO
 Algo.name = "PPO"
 # ENT = 0.01
 
+use_last_model = False
 
-models_dir = f"models/{env_name}/{Algo.name}"
-logdir = f"logs/{env_name}/{Algo.name}"
-imgs_dir = f"imgs/{env_name}/{Algo.name}"
+if use_last_model:
+    date = input("Insert date: ")
+    last_model = int(input("Insert model number: "))
+
+if not use_last_model:
+    date = time.strftime("%m_%d_%H_%M", time.localtime())
+    last_model = 0
+
+print({"date": date, "last_model": last_model})
+time.sleep(5)
+
+models_dir = f"models/{env_name}/{date}/{Algo.name}"
+logdir = f"logs/{env_name}/{date}/{Algo.name}"
+imgs_dir = f"imgs/{env_name}/{date}/{Algo.name}"
 
 os.makedirs(models_dir, exist_ok=True)
 os.makedirs(logdir, exist_ok=True)
 os.makedirs(imgs_dir, exist_ok=True)
+
+fill_reward_file(imgs_dir)
 
 
 def run_episode(
@@ -45,7 +70,6 @@ def run_episode(
         obs, reward, term, trunc, info = env.step(action)
         if term or trunc:
             X = env.render()
-            # plt.imshow(X)
             plt.imsave(
                 f"{imgs_dir}/{model_name}_{model_num}_{model_timesteps:.1e}.png", X
             )
@@ -53,12 +77,12 @@ def run_episode(
     env.close()
 
 
-env = make_vec_env(env_name, n_envs=2)
+n_envs = os.cpu_count()
+env = make_vec_env(env_name, n_envs=n_envs)
 # env=gym.make(env_name)
 
 
 TIMESTEPS = 50_000
-last_model = 60
 if last_model > 0:
     model = Algo.load(
         f"{models_dir}/{Algo.name}_{last_model}",
@@ -68,9 +92,6 @@ if last_model > 0:
         tensorboard_log=logdir,
     )
 else:
-    input("Press Enter to delete logs and models")
-    send2trash.send2trash(f"{logdir}/")
-    send2trash.send2trash(f"{models_dir}/")
     model = Algo(
         "MlpPolicy",
         env=env,
@@ -78,7 +99,7 @@ else:
         # ent_coef=ENT,
         tensorboard_log=logdir,
     )
-episodes = 8
+episodes = 100
 run_episode(
     model,
     env_name=env_name,
@@ -87,7 +108,7 @@ run_episode(
     model_timesteps=model.num_timesteps,
     args=(),
 )
-mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=1)
+mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=2)
 print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
 for i in range(last_model + 1, last_model + episodes + 1):
     model.learn(

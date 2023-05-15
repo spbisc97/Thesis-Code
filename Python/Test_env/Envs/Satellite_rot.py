@@ -423,8 +423,8 @@ class Chaser:
 
         return dy
 
-    @jit(nopython=True)
     @staticmethod
+    @jit(nopython=True)
     def omega(q):
         mat = np.array(
             [
@@ -442,7 +442,7 @@ class Chaser:
         # self.state = self._rk4(
         # self._Sat_Rotational_Dyn, self.step, self.state, args=(trust,)
         # )
-        k = solve_ivp(
+        sol = solve_ivp(
             Chaser._Sat_Rotational_Dyn,
             [0, self.step],
             self.state,
@@ -450,7 +450,7 @@ class Chaser:
             method="RK45",  # method="RK45",#method="LSODA",
         )
         # print(k)
-        self.state = k.y[:, -1]
+        self.state = sol.y[:, -1]
         pass
 
     def _rk4(self, f, step, y0, args=()):
@@ -488,8 +488,8 @@ class Chaser:
         # e = e / np.linalg.norm(e)
         return e
 
-    @jit(nopython=True)
     @staticmethod
+    @jit(nopython=True)
     def quat_inv(q):
         # shouldnt be needed the denominator is always 1
         den = np.dot(q, q)

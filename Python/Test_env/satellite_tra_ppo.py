@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.vec_env import VecMonitor
+from stable_baselines3.common.vec_env import VecNormalize
 from Envs.Satellite_tra import Satellite_tra
 import gymnasium as gym
 import numpy as np
@@ -51,9 +53,10 @@ if not use_last_model:
 print({"date": date, "last_model": last_model})
 time.sleep(5)
 
-models_dir = f"models/{env_name}/{Algo.name}/{date}"
-logdir = f"logs/{env_name}/{Algo.name}/{date}"
-imgs_dir = f"imgs/{env_name}/{Algo.name}/{date}"
+top_dir = "savings/"
+models_dir = top_dir + f"{env_name}/{Algo.name}/{date}/models/"
+logdir = top_dir + f"{env_name}/{Algo.name}/{date}/logs/"
+imgs_dir = top_dir + f"{env_name}/{Algo.name}/{date}/imgs/"
 
 os.makedirs(models_dir, exist_ok=True)
 os.makedirs(logdir, exist_ok=True)
@@ -81,10 +84,17 @@ def run_episode(
     env.close()
 
 
-n_envs = int(os.cpu_count() / 2)
-env = make_vec_env(env_name, n_envs=n_envs)
-# env=gym.make(env_name)
-
+n_envs = 2
+eval_env = gym.make(env_name)
+env = make_vec_env(
+    env_name,
+    n_envs=n_envs,
+    wrapper_class=gym.wrappers.TimeLimit,
+    wrapper_kwargs={"max_episode_steps": 5000},
+)
+# vec monitor needed because of a bug in stable-baselines3
+env = VecMonitor(env)
+env = VecNormalize(env)
 
 TIMESTEPS = 50_000
 if last_model > 0:
@@ -112,9 +122,7 @@ run_episode(
     model_timesteps=model.num_timesteps,
     args=(),
 )
-mean_reward, std_reward = evaluate_policy(
-    model, env, n_eval_episodes=2, deterministic=True
-)
+mean_reward, std_reward = evaluate_policy(model, eval_env, n_eval_episodes=1)
 print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
 for i in range(last_model + 1, last_model + episodes + 1):
     model.learn(
@@ -126,7 +134,7 @@ for i in range(last_model + 1, last_model + episodes + 1):
     model.save(f"{models_dir}/{Algo.name}_{i}")
     last_model = i
     mean_reward, std_reward = evaluate_policy(
-        model, env, n_eval_episodes=2, deterministic=True
+        model, eval_env, n_eval_episodes=2, deterministic=True
     )
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
     run_episode(

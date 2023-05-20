@@ -49,9 +49,10 @@ if not use_last_model:
 print({"date": date, "last_model": last_model})
 time.sleep(5)
 
-models_dir = f"models/{env_name}/{Algo.name}/{date}"
-logdir = f"logs/{env_name}/{Algo.name}/{date}"
-imgs_dir = f"imgs/{env_name}/{Algo.name}/{date}"
+top_dir = "savings/"
+models_dir = top_dir + f"{env_name}/{Algo.name}/{date}/models/"
+logdir = top_dir + f"{env_name}/{Algo.name}/{date}/logs/"
+imgs_dir = top_dir + f"{env_name}/{Algo.name}/{date}/imgs/"
 
 os.makedirs(models_dir, exist_ok=True)
 os.makedirs(logdir, exist_ok=True)

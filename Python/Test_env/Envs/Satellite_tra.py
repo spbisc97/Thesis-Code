@@ -131,7 +131,7 @@ class Satellite_tra(gym.Env):
         ):
             return
         if self.subplots == None:
-            fig, ax = plt.subplots(4, 3, figsize=(10, 10),layout="constrained")
+            fig, ax = plt.subplots(4, 3, figsize=(10, 10), layout="constrained")
             fig.add_gridspec(hspace=30)
             lines = np.ma.zeros_like(ax)
             legend = np.array(
@@ -330,7 +330,7 @@ class Chaser:
     mu = 3.986004418 * 1e14
     rt = 6.6 * 1e6
     Isp = 2250
-    Tmax = 1.05e-1
+    Tmax = 1.05e-3
     g = 9.81
     dt = 1
 

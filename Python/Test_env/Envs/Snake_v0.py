@@ -1,11 +1,5 @@
 import gymnasium as gym
 from gymnasium import spaces
-import os
-from PyQt5.QtCore import QLibraryInfo  # others imports
-
-os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = QLibraryInfo.location(
-    QLibraryInfo.PluginsPath
-)
 
 SNAKE_LEN_GOAL = 30
 from collections import deque
@@ -13,10 +7,14 @@ import numpy as np
 import random
 import cv2
 import time
+import pygame
 
 
 def collision_with_apple(apple_position, score):
-    apple_position = [random.randrange(1, 50) * 10, random.randrange(1, 50) * 10]
+    apple_position = [
+        random.randrange(1, 50) * 10,
+        random.randrange(1, 50) * 10,
+    ]
     score += 1
     return apple_position, score
 
@@ -53,12 +51,16 @@ class SnakeEnv(gym.Env):
         self.observation_space = spaces.Box(
             low=-500, high=500, shape=(5 + SNAKE_LEN_GOAL,), dtype=np.int64
         )
-        
-        assert render_mode is None or render_mode in self.metadata["render_modes"]
+
+        assert (
+            render_mode is None or render_mode in self.metadata["render_modes"]
+        )
         self.render_mode = render_mode
+        if self.render_mode is not None:
+            self._init_render()
 
     def step(self, action):
-        reward=0
+        reward = 0
         terminated = False
         self.prev_actions.append(action)
 
@@ -92,13 +94,16 @@ class SnakeEnv(gym.Env):
         ):
             terminated = True
         # reward proposal
-        euclidian_distance=np.sqrt((self.snake_head[0]-self.apple_position[0])**2+(self.snake_head[1]-self.apple_position[1])**2)
-        reward += -euclidian_distance/500 if not terminated else -1000
+        euclidian_distance = np.sqrt(
+            (self.snake_head[0] - self.apple_position[0]) ** 2
+            + (self.snake_head[1] - self.apple_position[1]) ** 2
+        )
+        reward += -euclidian_distance / 500 if not terminated else -1000
 
         # observation proposal
         # head_x, head_y, apple_delta_x, apple_delta_y, snake_length, previous_moves
         observation = self._get_obs()
-        info={}
+        info = {}
         return (
             observation,
             reward,
@@ -108,8 +113,6 @@ class SnakeEnv(gym.Env):
         )  # observation, reward, terminated,truncated, info
 
     def reset(self):
-        terminated = False
-
         # self.img = np.zeros((500,500,3),dtype='uint8')
         ## Initial Snake and Apple position
         self.snake_position = [[250, 250], [240, 250], [230, 250]]
@@ -119,7 +122,6 @@ class SnakeEnv(gym.Env):
         ]
         self.score = 0
         self.action = 1
-        reward = 0
         self.snake_head = [250, 250]
         ...
         # observation proposal
@@ -132,9 +134,8 @@ class SnakeEnv(gym.Env):
         self.prev_actions = deque(maxlen=SNAKE_LEN_GOAL)
         for _ in range(SNAKE_LEN_GOAL):
             self.prev_actions.append(-1)
-
         observation = self._get_obs()
-        info={}
+        info = {}
 
         return observation, info  # observation, info
 
@@ -143,11 +144,15 @@ class SnakeEnv(gym.Env):
         if self.render_mode == "rgb_array":
             return self._render_frame()
         if self.render_mode == "human":
-            cv2.imshow("Snake", self._render_frame())
-            cv2.waitKey(1)
-            time.sleep(0.01)
-            return  
-        
+            pygame.surfarray.blit_array(self.display, self._render_frame())
+            pygame.display.flip()
+            return
+
+    def _init_render(self):
+        if self.render_mode == "human":
+            pygame.init()
+            self.display = pygame.display.set_mode((500, 500))
+
     def _render_frame(self):
         img = np.zeros((500, 500, 3), dtype="uint8")
         # Display Apple
@@ -172,7 +177,7 @@ class SnakeEnv(gym.Env):
     def close(self):
         # if it is necessary to shut down the environment properly
         if self.render_mode == "human":
-            cv2.destroyWindow("Snake")
+            pygame.quit()
         pass
 
     def _get_obs(self):
@@ -187,3 +192,76 @@ class SnakeEnv(gym.Env):
             + list(self.prev_actions)
         )
         return observation
+
+
+def main():
+    env = SnakeEnv("human")
+    for i in range(10):
+        env.reset()
+        while True:
+            env.render()
+            time.sleep(0.1)
+            obs, reward, term, trunc, info = env.step(
+                env.action_space.sample()
+            )
+            if term or trunc:
+                break
+    env.close()
+
+
+def key_press():
+    gym.register(
+        id="Snake-v0",
+        entry_point="Snake_v0:SnakeEnv",
+        kwargs={"render_mode": "human"},
+        max_episode_steps=500,
+    )
+    env = gym.make("Snake-v0", render_mode="human")
+
+    episodes = 2
+    term = False
+    for episode in range(1, episodes + 1):
+        obs, info = env.reset()
+        counter = 0
+        switcher = {
+            "1": 1,
+            "2": 2,
+            "3": 0,
+            "4": 3,
+        }
+        while not term:
+            counter += 1
+            env.render()
+            key = int(1 + np.floor(counter / 4) % 4)
+            action = switcher.get(str(key), 1)
+            print(str(key) + "  " + str(action))
+            time.sleep(0.001)
+            obs, reward, term, trunc, info = env.step(action)
+            if term or trunc:
+                term = False
+                break
+    episodes = 1
+
+    term = False
+    for episode in range(1, episodes + 1):
+        obs, info = env.reset()
+        while not term:
+            action_button = input("Press Enter to continue...")
+            switcher = {
+                "a": 0,
+                "d": 1,
+                "w": 3,
+                "s": 2,
+            }
+            action = switcher.get(action_button, 1)
+            env.render()
+            obs, reward, term, trunc, info = env.step(action)
+
+            if term or trunc:
+                term = False
+                break
+    env.close()
+
+
+if __name__ == "__main__":
+    key_press()

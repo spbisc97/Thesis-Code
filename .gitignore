@@ -56,3 +56,4 @@ Python/Random/*
 # env, env creator
 venv/
 oryx-build-commands.txt
+.spyproject/*

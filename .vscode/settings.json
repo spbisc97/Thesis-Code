@@ -9,5 +9,9 @@
     "python.formatting.blackArgs": [
         "--line-length 79"
     ],
-    
+    "python.linting.enabled": true,
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 10000,
+    "python.linting.lintOnSave": true
+
 }

@@ -36,7 +36,7 @@ env_name = "Satellite-rot-v0"
 Algo = PPO
 Algo.name = "PPO"
 # ENT = 0.01
-use_last_model = True
+use_last_model = False
 
 if use_last_model:
     date = input("Insert date: ")

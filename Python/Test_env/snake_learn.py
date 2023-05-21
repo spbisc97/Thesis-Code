@@ -38,6 +38,18 @@ env_name = "Snake-v0"
 Algo = PPO
 Algo.name = "PPO"
 
+use_last_model = False
+
+if use_last_model:
+    date = input("Insert date: ")
+    last_model = int(input("Insert model number: "))
+
+if not use_last_model:
+    date = time.strftime("%m_%d_%H_%M", time.localtime())
+    last_model = 0
+
+print({"date": date, "last_model": last_model})
+time.sleep(5)
 
 top_dir = "savings/"
 models_dir = top_dir + f"{env_name}/{Algo.name}/{date}/models/"
@@ -66,7 +78,9 @@ else:
 episodes = 0
 for i in range(last_model + 1, last_model + episodes + 1):
     model.learn(
-        total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name=f"run_{i}"
+        total_timesteps=TIMESTEPS,
+        reset_num_timesteps=False,
+        tb_log_name=f"run_{i}",
     )
     model.save(f"{models_dir}/{Algo.name}_{i}")
     last_model = i

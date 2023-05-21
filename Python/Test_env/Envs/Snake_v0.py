@@ -218,7 +218,7 @@ def key_press():
     )
     env = gym.make("Snake-v0", render_mode="human")
 
-    episodes = 2
+    episodes = 4
     term = False
     for episode in range(1, episodes + 1):
         obs, info = env.reset()
@@ -234,18 +234,18 @@ def key_press():
             env.render()
             key = int(1 + np.floor(counter / 4) % 4)
             action = switcher.get(str(key), 1)
-            print(str(key) + "  " + str(action))
             time.sleep(0.001)
             obs, reward, term, trunc, info = env.step(action)
             if term or trunc:
                 term = False
                 break
-    episodes = 1
+    episodes = 0
 
     term = False
     for episode in range(1, episodes + 1):
         obs, info = env.reset()
         while not term:
+
             action_button = input("Press Enter to continue...")
             switcher = {
                 "a": 0,

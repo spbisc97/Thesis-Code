@@ -10,7 +10,6 @@ from gymnasium import spaces
 import numpy as np
 from scipy.integrate import odeint, solve_ivp
 from numba import jit  # or try codonpy instead
-import random
 
 
 # ? Maybe it's better to normalize the observation space?
@@ -21,7 +20,14 @@ class Satellite_tra(gym.Env):
     metadata = {
         "render_modes": ["rgb_array", "human"],
         "observation_spaces": ["MlpPolicy", "MultiInputPolicy"],
-        "control": ["Ml", "ModelPredictiveControl", "LQR", "PID", "Random", "Human"],
+        "control": [
+            "Ml",
+            "ModelPredictiveControl",
+            "LQR",
+            "PID",
+            "Random",
+            "Human",
+        ],
         "action_spaces": ["continuous", "discrete"],
         "matplotlib_backend": [
             "TkAgg",
@@ -483,7 +489,10 @@ def pstats_profiler(fun):
 
 def test_env():
     env = gym.make(
-        "Satellite-tra-v0", render_mode=None, control="PID", matplotlib_backend=None
+        "Satellite-tra-v0",
+        render_mode=None,
+        control="PID",
+        matplotlib_backend=None,
     )
     K = np.array(
         [

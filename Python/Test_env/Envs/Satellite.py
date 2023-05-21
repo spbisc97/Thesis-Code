@@ -2,7 +2,6 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 from numba import jit
-import random
 
 
 # ? Maybe it's better to normalize the observation space?
@@ -13,7 +12,14 @@ class Satellite_base(gym.Env):
     metadata = {
         "render_modes": ["rgb_array", "human"],
         "observation_spaces": ["MlpPolicy", "MultiInputPolicy"],
-        "control": ["Ml", "ModelPredictiveControl", "LQR", "PID", "Random", "Human"],
+        "control": [
+            "Ml",
+            "ModelPredictiveControl",
+            "LQR",
+            "PID",
+            "Random",
+            "Human",
+        ],
         "action_spaces": ["continuous", "discrete"],
     }
 
@@ -31,9 +37,13 @@ class Satellite_base(gym.Env):
 
         assert action_space in self.metadata["action_spaces"]
         if action_space == "continuous":
-            self.action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float32)
+            self.action_space = spaces.Box(
+                low=-1, high=1, shape=(3,), dtype=np.float32
+            )
         else:
-            self.action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.int8)
+            self.action_space = spaces.Box(
+                low=-1, high=1, shape=(3,), dtype=np.int8
+            )
         #   or action_space in self.metadata['action_spaces']
         #   could be  better to use normalized action space
         assert observation_space in self.metadata["observation_spaces"]
@@ -56,7 +66,9 @@ class Satellite_base(gym.Env):
                 }
             )
         # or render_mode in self.metadata['render_modes']
-        assert render_mode is None or render_mode in self.metadata["render_modes"]
+        assert (
+            render_mode is None or render_mode in self.metadata["render_modes"]
+        )
         self.render_mode = render_mode
 
         self.dmax = 20000
@@ -68,7 +80,9 @@ class Satellite_base(gym.Env):
         info = {}
         truncated = False
         self.chaser.move(self._action_filter(action))
-        terminated = self._beyond_observational_space()  # or self.chaser.fuel_mass <= 0
+        terminated = (
+            self._beyond_observational_space()
+        )  # or self.chaser.fuel_mass <= 0
         observation = self._get_observation()
         reward = self._reward_function()
         return observation, reward, terminated, truncated, info
@@ -237,7 +251,8 @@ class Chaser:
             self._Sat_Translational_Dyn, self.state, self.dt, args=(trust,)
         )
         self.fuel_mass = (
-            self.fuel_mass - np.sum(np.abs(trust)) / (self.g * self.Isp) * self.dt
+            self.fuel_mass
+            - np.sum(np.abs(trust)) / (self.g * self.Isp) * self.dt
         )
         pass
 

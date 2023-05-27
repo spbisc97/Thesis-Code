@@ -150,7 +150,7 @@ function Tester(test_n)
 
        
 %% Goal Trajectory
-        q_goal=eul2quat([0.2,0,0])';
+        q_goal=eul2quat([0.7,-1,20])';
         y_goal_att=[q_goal;0;0;0];
         y_goal_tra=[0;0;0;0;0;0];
         y_goal_mass=Sat_params().fuel_mass;

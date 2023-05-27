@@ -101,10 +101,10 @@ function [u,e]=quat_err_rate(y,y_goal)
     q_e=quat_tracking_error(y(1:4),y_goal(1:4));
     e=[q_e;0;0;0];
     parameters=Sat_params();    
-    p=-q_e(2:4)/(1-norm(q_e(2:4))^2);
+    p=-q_e(2:4)/(1.5-norm(q_e(2:4))^2);
     d=y_goal(5:7)-y(5:7);
-    kp=0.2*parameters.invI*1e-5;
-    kd=30*parameters.invI*1e-5;
+    kp=0.3 * 1e-3;
+    kd=10 * 1e-3;
     u=kp*p+kd*d;
 end
 

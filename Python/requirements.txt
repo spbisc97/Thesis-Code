@@ -5,7 +5,6 @@ numba==0.57.0
 numpy
 opencv_contrib_python==4.6.0.66
 opencv_python==4.6.0.66
+pygame==2.1.3
 scipy==1.10.1
-Send2Trash
-stable_baselines3==2.0.0a5
-tensorboard
+stable_baselines3==2.0.0a10

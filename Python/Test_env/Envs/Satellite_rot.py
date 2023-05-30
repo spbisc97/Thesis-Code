@@ -471,11 +471,11 @@ class Chaser:
     @staticmethod
     def quaternion_err_rate(q1, qd, w=np.array([0, 0, 0]), wd=np.array([0, 0, 0])):
         q_e = Chaser.quat_track_err(q1, qd)
-        p = -q_e[1:4] / (1.5 - np.dot(q_e[1:4], q_e[1:4]))
+        p = -q_e[1:4] #/ (1.5 - np.dot(q_e[1:4], q_e[1:4]))
         d = wd - w
-        kp = 0.3 * 1e-3
-        kd = 10 * 1e-3
-        u = kp * p + kd * d
+        kp = q_e[0] * 1e-4 * invI
+        kd = 1 * 1e-2
+        u = kp @ p + kd * d
         return u
 
     @staticmethod
@@ -546,9 +546,9 @@ def quaternion_to_euler(q):
 def test_env():
     env = gym.make(
         "Satellite-rot-v0",
-        render_mode=None,
+        render_mode="human",
         control="PID",
-        matplotlib_backend=None,
+        matplotlib_backend="TkAgg",
     )
     print("env checked")
     term = False
@@ -634,5 +634,5 @@ if __name__ == "__main__":
 
     check_env(Satellite_rot(), warn=True)
     print("env checked")
-
-    snakeviz_profiler(test_env)
+    test_env()
+    #snakeviz_profiler(test_env)

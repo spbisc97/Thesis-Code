@@ -2,20 +2,20 @@ function [dy,u] = Sat_Attitude_Dyn(~,y,u) %#codegen
     %SAT_ATTITUDE_DYN attitude dynamic of the satellite
     %   The output of this function will be 7 elements
     %   quaternion+velocities
-
+    coder.inline('always');
     parameters=Sat_params();
     %override tmax
     parameters.Tmax=0.03;
     
     g=9.81;
-
+    y=y(:);
     q=y(1:4);
     w=y(5:7);
-
+    
     %mass=y(8);
-    u=min(parameters.Tmax,max(-parameters.Tmax,u(:)))*min(1,max(0,y(8)*1e2));
-    torques=u;
-
+    u=min(parameters.Tmax,max(-parameters.Tmax,u))*min(1,max(0,y(8)*1e2));
+    torques=u(:);
+    
     
     % assume a uniform density and a 10cm cube shape
     %calculated a priori in future implementations
@@ -23,23 +23,23 @@ function [dy,u] = Sat_Attitude_Dyn(~,y,u) %#codegen
     % syms Ix Iy Iz
     % I = diag([Ix, Iy, Iz]);
     %end
-
+    
     %The gain K drives the norm of the quaternion state vector to 1.0 should εbecome nonzero.
     ep=1-sum(q.*q);
     K=0.1;%*norm(q);
     q_dot = 0.5 * omega(w)*q + K*ep*q;
-
+    
     %Euler's equation of motion
     %(-cross(y(1:3), I * y(1:3))  from transport theorem
     %cross(w,ang_momentum), always zero if inertia is diagonal
-
-
+    
+    
     w_dot=[parameters.invI * (-cross(w(1:3), parameters.I * w(1:3)) + torques)]; %#ok
-
-    m_dot=-sum(abs(u(:)))/(g*parameters.Isp);
+    
+    m_dot=-sum(abs(u))/(g*parameters.Isp);
     % this will be changed to a battery + rotation wheels
-
-
+    
+    
     dy=[q_dot;w_dot;m_dot];
 end
 

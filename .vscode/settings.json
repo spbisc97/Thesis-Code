@@ -1,0 +1,21 @@
+{
+    "[python]": {
+        "editor.formatOnType": true,
+        "editot.formatOnPaste": true,
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "ms-python.black-formatter"
+        
+    },
+    "python.formatting.blackArgs": [
+        "--line-length 79"
+    ],
+    "[matlab]": { 
+        "files.encoding": "windows1252",
+        "editor.formatOnSave": true,
+        "editor.formatOnPaste": true,},
+    "python.linting.enabled": true,
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 10000,
+    "python.linting.lintOnSave": true
+
+}

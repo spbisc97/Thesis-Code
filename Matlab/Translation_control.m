@@ -1,39 +1,15 @@
-function [dy,u] = Cheaser(t,y,y_goal) %#codegen
-    %disp(t)
-    coder.extrinsic('exist');
-    if ~exist('y','var')
-        Return_lqr_values()
-        return;
-    end
-
-    y=y(:);
-
-
-    u_tranlational=translation_control(y(1:6),y_goal(1:6));%later mass will have to be passed
-    u_attitude=attitude_control(y(7:13),y_goal(7:13));%later mass will have to be passed
-
-    
-    [dy,u]=Sat_dyn(t,y,u_tranlational,u_attitude);
-    %u=[u_tranlational;u_attitude];
-end
-
-
-
-
-%% Control Functions
-function [u,e]=translation_control(y,y_goal)
+function [u,e]=Translation_control(t,y,y_goal_traj,tspan)
     %u=0;e=0;
     %e=y_goal(1:6)-y(1:6);
-    [u,e]=lqr_control_tra(y(1:6),y_goal(1:6));
+
+    if ~find(tspan==t)
+        disp("error")
+        pause()
+    end
+    y_goal=interp1(tspan,y_goal_traj,t).';
+    %disp([y,y_goal])
+    [u,e]=lqr_control_tra(y,y_goal);
 end
-
-function [u,e]=attitude_control(y,y_goal)
-    %u=[0;0;0];
-    e=[0;0;0;0;0;0;0];
-    u=quat_err_rate(y,y_goal);
-
-end
-
 %% Translation Helping Functions
 function [u,e]=lqr_control_tra(y,y_goal)
     e=y_goal(1:6)-y(1:6);
@@ -97,36 +73,3 @@ function Return_lqr_values()
     format longg
     disp(K)
 end
-
-%% Attitude Helping Functions
-function [u,e]=quat_err_rate(y,y_goal)
-    q_e=quat_tracking_error(y(1:4),y_goal(1:4));
-    e=[q_e;0;0;0];
-    u=-q_e(2:4)/(1-norm(q_e(2:4))^2)-y(5:7);
-    u=u/100;
-end
-
-function mat=omega(q)
-    % mat for crossproduct btw quaternions
-    % q(1) is the scalar part
-
-    mat=[q(1),-q(2),-q(3),-q(4);...
-        q(2),q(1),q(4),-q(3);...
-        q(3),-q(4),q(1),q(2);...
-        q(4),q(3),-q(2),q(1)];
-end
-
-function e=quat_tracking_error(q,q_d)
-    q_d_inv=quatinv(q_d')';
-    e=omega(q_d_inv)*q;
-    e=e(:);
-    if norm(e)>1.1
-        disp("error norm error")
-        disp(norm(e))
-    end
-end
-
-
-
-
-

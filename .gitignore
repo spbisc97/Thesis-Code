@@ -32,3 +32,29 @@ octave-workspace
 
 # LocalTesting
 local*.m
+
+
+
+
+# Runned files
+Python/Gymnasium_tests/imgs/*
+Python/Gymnasium_tests/logs/*
+Python/Gymnasium_tests/models/*
+logs/snake/PPO/run_1_0/events.out.tfevents.1683159440.elite-fed.281955.0
+Python/Test_env/logs/*
+Python/Test_env/imgs/*
+Python/Test_env/models/*
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# C extensions
+*.so
+Python/Random/*
+
+
+# env, env creator
+venv/
+oryx-build-commands.txt
+.spyproject/*
+.devcontainer/devcontainer.json

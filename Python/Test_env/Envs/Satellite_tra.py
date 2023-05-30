@@ -116,7 +116,7 @@ class Satellite_tra(gym.Env):
         state = np.zeros((6,), dtype=np.float32)
         # state[random.randint(0,2)] = random.randint(-100, 100)
         state[0:3] = (np.random.rand(1, 3) - 0.5) * 20
-        state[3:] = (np.random.rand(1, 3) - 0.5) * 0.001
+        state[3:] = (np.random.rand(1, 3) - 0.5) * 0.0001
         self.chaser.set_state(state)
         self.prev_shaping = self._shape_reward()
         info = {}

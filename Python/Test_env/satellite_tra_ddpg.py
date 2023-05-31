@@ -72,7 +72,7 @@ def run_episode(
     obs, info = env.reset()
 
     while not term:
-        action, _states = model.predict(obs)
+        action, _states = model.predict(obs,deterministic=True)
         obs, reward, term, trunc, info = env.step(action)
         if term or trunc:
             X = env.render()
@@ -86,12 +86,12 @@ def run_episode(
 n_envs = int(os.cpu_count() / 2)
 # env = make_vec_env(env_name, n_envs=n_envs)
 env = gym.make(env_name)
-env = gym.wrappers.TimeLimit(env, max_episode_steps=4000)
+env = gym.wrappers.TimeLimit(env, max_episode_steps=5000)
 env = Monitor(env)
 
 
 n_actions = 3
-action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=3 * np.ones(n_actions))
+action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.02 * np.ones(n_actions))
 
 
 TIMESTEPS = 50_000
@@ -100,8 +100,10 @@ if last_model > 0:
         f"{models_dir}/{Algo.name}_{last_model}",
         env=env,
         action_noise=action_noise,
-        train_freq=(100, "step"),
+        train_freq=(2, "episode"),
         verbose=1,
+        gamma=0.999,
+        learning_starts=200,
         # ent_coef=ENT,
         tensorboard_log=logdir,
     )
@@ -110,8 +112,10 @@ else:
         "MlpPolicy",
         env=env,
         action_noise=action_noise,
-        train_freq=(100, "step"),
+        train_freq=(2, "episode"),
         verbose=1,
+        gamma=0.999,
+        learning_starts=200,
         # ent_coef=ENT,
         tensorboard_log=logdir,
     )

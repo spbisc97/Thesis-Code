@@ -115,8 +115,8 @@ class Satellite_tra(gym.Env):
         self.chaser = Chaser()
         state = np.zeros((6,), dtype=np.float32)
         # state[random.randint(0,2)] = random.randint(-100, 100)
-        state[0:3] = (np.random.rand(1, 3) - 0.5) * 20
-        state[3:] = (np.random.rand(1, 3) - 0.5) * 0.0001
+        state[0:3] =np.random.default_rng().normal(0,80,size=(1,3))#  (np.random.rand(1, 3) - 0.5) * 100
+        state[3:] = np.random.default_rng().normal(0,0.1,size=(1,3))# (np.random.rand(1, 3) - 0.5) * 0.01
         self.chaser.set_state(state)
         self.prev_shaping = self._shape_reward()
         info = {}
@@ -301,7 +301,7 @@ class Satellite_tra(gym.Env):
         log_position_error_term = np.log(np.linalg.norm(self.chaser.state[:3]) + 1e-1)
 
         # Control Effort Term
-        control_effort_term = 0.3 * np.linalg.norm(action)
+        control_effort_term = np.linalg.norm(action)
 
         reward += term_reward - log_position_error_term - control_effort_term
 

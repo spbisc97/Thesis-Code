@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from stable_baselines3 import DDPG
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.noise import NormalActionNoise
 from stable_baselines3.common.monitor import Monitor
 from Envs.Satellite_tra import Satellite_tra
@@ -83,15 +84,27 @@ def run_episode(
     env.close()
 
 
+def create_env():
+    env = gym.make(env_name)
+    env = gym.wrappers.TimeLimit(env, max_episode_steps=5000)
+    env = Monitor(env)
+    return env
 n_envs = int(os.cpu_count() / 2)
 # env = make_vec_env(env_name, n_envs=n_envs)
-env = gym.make(env_name)
-env = gym.wrappers.TimeLimit(env, max_episode_steps=5000)
-env = Monitor(env)
+
+
+# env = gym.wrappers.TimeLimit(env, max_episode_steps=5000)
+# env = Monitor(env)
+
+env = DummyVecEnv([create_env for _ in range(n_envs)])
+
+test_env = gym.make(env_name)
+test_env = gym.wrappers.TimeLimit(test_env, max_episode_steps=5000)
+
 
 
 n_actions = 3
-action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.02 * np.ones(n_actions))
+action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.0001 * np.ones(n_actions))
 
 
 TIMESTEPS = 50_000
@@ -100,7 +113,7 @@ if last_model > 0:
         f"{models_dir}/{Algo.name}_{last_model}",
         env=env,
         action_noise=action_noise,
-        train_freq=(2, "episode"),
+        train_freq=(1000, "step"), # try step training with multiple envs
         verbose=1,
         gamma=0.999,
         learning_starts=200,
@@ -112,7 +125,7 @@ else:
         "MlpPolicy",
         env=env,
         action_noise=action_noise,
-        train_freq=(2, "episode"),
+        train_freq=(1000, "step"), # try step training with multiple envs
         verbose=1,
         gamma=0.999,
         learning_starts=200,
@@ -129,7 +142,7 @@ run_episode(
     args=(),
 )
 mean_reward, std_reward = evaluate_policy(
-    model, env, n_eval_episodes=2, deterministic=True
+    model, test_env, n_eval_episodes=2, deterministic=True
 )
 print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
 for i in range(last_model + 1, last_model + episodes + 1):
@@ -142,7 +155,7 @@ for i in range(last_model + 1, last_model + episodes + 1):
     model.save(f"{models_dir}/{Algo.name}_{i}")
     last_model = i
     mean_reward, std_reward = evaluate_policy(
-        model, env, n_eval_episodes=2, deterministic=True
+        model, test_env, n_eval_episodes=2, deterministic=True
     )
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
     run_episode(

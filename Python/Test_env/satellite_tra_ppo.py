@@ -84,7 +84,7 @@ def run_episode(
     env.close()
 
 
-n_envs = 2
+n_envs = 4
 eval_env = gym.make(env_name)
 env = make_vec_env(
     env_name,
@@ -102,6 +102,8 @@ if last_model > 0:
         f"{models_dir}/{Algo.name}_{last_model}",
         env=env,
         verbose=1,
+        gamma=0.999,
+        n_steps=8192,
         # ent_coef=ENT,
         tensorboard_log=logdir,
     )
@@ -110,6 +112,8 @@ else:
         "MlpPolicy",
         env=env,
         verbose=1,
+        gamma=0.999,
+        n_steps=8192,
         # ent_coef=ENT,
         tensorboard_log=logdir,
     )

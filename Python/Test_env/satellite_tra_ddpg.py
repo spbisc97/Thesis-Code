@@ -103,7 +103,7 @@ test_env = gym.wrappers.TimeLimit(test_env, max_episode_steps=5000)
 
 
 n_actions = 3
-action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.0001 * np.ones(n_actions))
+action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.005 * np.ones(n_actions))
 
 
 TIMESTEPS = 50_000
@@ -112,7 +112,7 @@ if last_model > 0:
         f"{models_dir}/{Algo.name}_{last_model}",
         env=env,
         action_noise=action_noise,
-        train_freq=(2, "episode"), # try step training with multiple envs
+        train_freq=(1, "episode"), # try step training with multiple envs
         verbose=1,
         gamma=0.999,
         learning_starts=200,
@@ -124,7 +124,7 @@ else:
         "MlpPolicy",
         env=env,
         action_noise=action_noise,
-        train_freq=(2, "episode"), # try step training with multiple envs
+        train_freq=(1, "episode"), # try step training with multiple envs
         verbose=1,
         gamma=0.999,
         learning_starts=200,

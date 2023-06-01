@@ -93,10 +93,9 @@ n_envs = int(os.cpu_count() / 2)
 # env = make_vec_env(env_name, n_envs=n_envs)
 
 
-# env = gym.wrappers.TimeLimit(env, max_episode_steps=5000)
-# env = Monitor(env)
+env = create_env()
 
-env = DummyVecEnv([create_env for _ in range(n_envs)])
+#env = DummyVecEnv([create_env for _ in range(n_envs)])
 
 test_env = gym.make(env_name)
 test_env = gym.wrappers.TimeLimit(test_env, max_episode_steps=5000)
@@ -113,7 +112,7 @@ if last_model > 0:
         f"{models_dir}/{Algo.name}_{last_model}",
         env=env,
         action_noise=action_noise,
-        train_freq=(1000, "step"), # try step training with multiple envs
+        train_freq=(2, "episode"), # try step training with multiple envs
         verbose=1,
         gamma=0.999,
         learning_starts=200,
@@ -125,7 +124,7 @@ else:
         "MlpPolicy",
         env=env,
         action_noise=action_noise,
-        train_freq=(1000, "step"), # try step training with multiple envs
+        train_freq=(2, "episode"), # try step training with multiple envs
         verbose=1,
         gamma=0.999,
         learning_starts=200,

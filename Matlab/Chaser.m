@@ -1,11 +1,4 @@
 function [t, y, u] = Chaser(t, y0, y_goal_traj, tspan) %#codegen
-    %disp(t)
-    coder.extrinsic('exist');
-    
-    if ~exist('y0', 'var')
-        Return_lqr_values()
-        return;
-    end
     
     y0 = y0(:);
     [t, y, u] = forode(y_goal_traj, tspan, y0);

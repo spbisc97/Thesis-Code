@@ -7,7 +7,9 @@
         
     },
     "python.formatting.blackArgs": [
-        "--line-length 79"
+        "--line-length",
+        "79",
+        "--skip-string-normalization",
     ],
     "[matlab]": { 
         "files.encoding": "windows1252",
@@ -16,6 +18,7 @@
     "python.linting.enabled": true,
     "files.autoSave": "afterDelay",
     "files.autoSaveDelay": 10000,
-    "python.linting.lintOnSave": true
+    "python.linting.lintOnSave": true,
+    "black-formatter.importStrategy": "fromEnvironment"
 
 }

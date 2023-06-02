@@ -16,10 +16,13 @@ import gymnasium as gym
 import numpy as np
 import os
 
+# import code
+
 # import send2trash
 import time
 
 # import ffmpegio
+MAX_EPISODE_STEPS = 50_000
 
 
 def fill_reward_file(imgs_dir: str):
@@ -70,10 +73,11 @@ def run_episode(
 ):
     term = False
     env = gym.make(env_name, render_mode="rgb_array")
+    env = gym.wrappers.TimeLimit(env, max_episode_steps=MAX_EPISODE_STEPS)
     obs, info = env.reset()
 
     while not term:
-        action, _states = model.predict(obs,deterministic=True)
+        action, _states = model.predict(obs, deterministic=True)
         obs, reward, term, trunc, info = env.step(action)
         if term or trunc:
             X = env.render()
@@ -86,24 +90,27 @@ def run_episode(
 
 def create_env():
     env = gym.make(env_name)
-    env = gym.wrappers.TimeLimit(env, max_episode_steps=5000)
+    env = gym.wrappers.TimeLimit(env, max_episode_steps=MAX_EPISODE_STEPS)
     env = Monitor(env)
     return env
+
+
 n_envs = int(os.cpu_count() / 2)
 # env = make_vec_env(env_name, n_envs=n_envs)
 
 
 env = create_env()
 
-#env = DummyVecEnv([create_env for _ in range(n_envs)])
+# env = DummyVecEnv([create_env for _ in range(n_envs)])
 
 test_env = gym.make(env_name)
-test_env = gym.wrappers.TimeLimit(test_env, max_episode_steps=5000)
-
+test_env = gym.wrappers.TimeLimit(test_env, max_episode_steps=MAX_EPISODE_STEPS)
 
 
 n_actions = 3
-action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.005 * np.ones(n_actions))
+action_noise = NormalActionNoise(
+    mean=np.zeros(n_actions), sigma=0.005 * np.ones(n_actions)
+)
 
 
 TIMESTEPS = 50_000
@@ -112,9 +119,9 @@ if last_model > 0:
         f"{models_dir}/{Algo.name}_{last_model}",
         env=env,
         action_noise=action_noise,
-        train_freq=(1, "episode"), # try step training with multiple envs
+        train_freq=(1, "episode"),  # try step training with multiple envs
         verbose=1,
-        gamma=0.999,
+        gamma=1,
         learning_starts=200,
         # ent_coef=ENT,
         tensorboard_log=logdir,
@@ -124,13 +131,14 @@ else:
         "MlpPolicy",
         env=env,
         action_noise=action_noise,
-        train_freq=(1, "episode"), # try step training with multiple envs
+        train_freq=(1, "episode"),  # try step training with multiple envs
         verbose=1,
-        gamma=0.999,
+        gamma=1,
         learning_starts=200,
         # ent_coef=ENT,
         tensorboard_log=logdir,
     )
+# code.interact(local=locals())
 episodes = 100
 run_episode(
     model,
@@ -141,7 +149,7 @@ run_episode(
     args=(),
 )
 mean_reward, std_reward = evaluate_policy(
-    model, test_env, n_eval_episodes=2, deterministic=True
+    model, test_env, n_eval_episodes=1, deterministic=True
 )
 print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
 for i in range(last_model + 1, last_model + episodes + 1):

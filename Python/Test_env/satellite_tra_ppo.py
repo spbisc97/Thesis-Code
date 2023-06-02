@@ -10,6 +10,7 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import VecMonitor
 from stable_baselines3.common.vec_env import VecNormalize
+import torch as th
 from Envs.Satellite_tra import Satellite_tra
 import gymnasium as gym
 import numpy as np
@@ -70,6 +71,7 @@ def run_episode(
 ):
     term = False
     env = gym.make(env_name, render_mode="rgb_array")
+    env = gym.wrappers.TimeLimit(env, max_episode_steps=30000)
     obs, info = env.reset()
 
     while not term:
@@ -86,36 +88,46 @@ def run_episode(
 
 n_envs = 4
 eval_env = gym.make(env_name)
+eval_env = gym.wrappers.TimeLimit(eval_env, max_episode_steps=30000)
 env = make_vec_env(
     env_name,
     n_envs=n_envs,
     wrapper_class=gym.wrappers.TimeLimit,
-    wrapper_kwargs={"max_episode_steps": 5000},
+    wrapper_kwargs={"max_episode_steps": 30000},
 )
 # vec monitor needed because of a bug in stable-baselines3
 env = VecMonitor(env)
-env = VecNormalize(env)
+# env = VecNormalize(env)
 
-TIMESTEPS = 50_000
+# try a smaller network
+policy_kwargs = dict(
+    net_arch=dict(pi=[32, 32], vf=[32, 32]),
+    activation_fn=th.nn.ReLU,
+    ortho_init=False,
+)
+
+TIMESTEPS = 250_000
 if last_model > 0:
     model = Algo.load(
         f"{models_dir}/{Algo.name}_{last_model}",
         env=env,
         verbose=1,
-        gamma=0.999,
-        n_steps=8192,
+        gamma=1,
+        n_steps=4096,
         # ent_coef=ENT,
         tensorboard_log=logdir,
+        # policy_kwargs=policy_kwargs,
     )
 else:
     model = Algo(
         "MlpPolicy",
         env=env,
         verbose=1,
-        gamma=0.999,
-        n_steps=8192,
+        gamma=1,
+        n_steps=4096,
         # ent_coef=ENT,
         tensorboard_log=logdir,
+        policy_kwargs=policy_kwargs,
     )
 episodes = 100
 run_episode(

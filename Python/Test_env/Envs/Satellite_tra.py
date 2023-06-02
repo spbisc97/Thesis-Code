@@ -115,8 +115,12 @@ class Satellite_tra(gym.Env):
         self.chaser = Chaser()
         state = np.zeros((6,), dtype=np.float32)
         # state[random.randint(0,2)] = random.randint(-100, 100)
-        state[0:3] =np.random.default_rng().normal(0,80,size=(1,3))#  (np.random.rand(1, 3) - 0.5) * 100
-        state[3:] = np.random.default_rng().normal(0,0.1,size=(1,3))# (np.random.rand(1, 3) - 0.5) * 0.01
+        state[0:3] = np.random.default_rng().normal(
+            0, 80, size=(1, 3)
+        )  # (np.random.rand(1, 3) - 0.5) * 100
+        state[3:] = np.random.default_rng().normal(
+            0, 0.08, size=(1, 3)
+        )  # (np.random.rand(1, 3) - 0.5) * 0.01
         self.chaser.set_state(state)
         self.prev_shaping = self._shape_reward()
         info = {}
@@ -133,7 +137,7 @@ class Satellite_tra(gym.Env):
 
     def render(self):
         if not self.render_mode or (
-            self.render_mode == "human" and self.times[-1] % 20 != 0
+            self.render_mode == "human" and (self.times[-1] - 1) % 200 != 0
         ):
             return
         if self.subplots == None:
@@ -487,38 +491,38 @@ def pstats_profiler(fun):
     stats.print_stats(100)  # top 100 rows
 
 
-def test_env():
+def test_env(render_mode=None, control="PID", matplotlib_backend=None):
     env = gym.make(
         "Satellite-tra-v0",
-        render_mode=None,
-        control="PID",
-        matplotlib_backend=None,
+        render_mode=render_mode,
+        control=control,
+        matplotlib_backend=matplotlib_backend,
     )
     K = np.array(
         [
             [
-                0.000110841893844189,
-                -9.42863182858601e-06,
-                -1.3683699332241e-20,
-                0.0311588547878855,
-                0.0416078206376348,
-                -2.60540076521516e-17,
+                4.37827913830195e-06,
+                -4.55805760795127e-08,
+                9.13530034828882e-19,
+                0.000416745113065582,
+                0.00185764340773104,
+                3.96890134028692e-16,
             ],
             [
-                2.8691835235862e-05,
-                -6.08300962818426e-07,
-                9.17052086490964e-22,
-                0.00138692735458782,
-                0.0124467361240575,
-                -1.15521460101992e-18,
+                6.92271669334668e-06,
+                -3.55539079353476e-08,
+                -1.47059095426734e-20,
+                6.19214469243926e-05,
+                0.00295066889892318,
+                5.56097720476582e-17,
             ],
             [
-                -2.82912468323803e-19,
-                1.93581086037258e-20,
-                8.3823164356623e-06,
-                1.31190777529513e-17,
-                -1.35991280487585e-16,
-                0.0258956622787094,
+                2.83885307788195e-17,
+                6.23667199640684e-21,
+                9.01572205276646e-10,
+                4.02876583128802e-15,
+                1.61053760602795e-14,
+                0.000268562427265422,
             ],
         ]
     )
@@ -547,8 +551,9 @@ if __name__ == "__main__":
     register(
         id="Satellite-tra-v0",
         entry_point="Satellite_tra:Satellite_tra",
-        max_episode_steps=10000,
+        max_episode_steps=50000,
         reward_threshold=0.0,
     )
+    test_env(render_mode="human", matplotlib_backend="TkAgg")
 
-    snakeviz_profiler(test_env)
+    # snakeviz_profiler(test_env)

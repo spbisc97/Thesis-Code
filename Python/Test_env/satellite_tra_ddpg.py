@@ -111,7 +111,7 @@ action_noise = NormalActionNoise(
 )
 
 
-TIMESTEPS = 50_000
+TIMESTEPS = 250_000
 if last_model > 0:
     model = Algo.load(
         f"{models_dir}/{Algo.name}_{last_model}",

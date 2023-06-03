@@ -6,7 +6,8 @@ function parameters=Sat_params() %maybe should be a class?
     %satellite Isp consumption
     parameters.Isp=2250;
     %max trust
-    parameters.Tmax=1.05e-5;
+    %parameters.Tmax=1.05e-5;
+    paramentrs.Tmax=1.05e-3;
     
     %inertia matrix, and its inverse
     %Ix = 8.33e-2;

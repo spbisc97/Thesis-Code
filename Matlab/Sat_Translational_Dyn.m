@@ -25,7 +25,7 @@ function [dy,u] = Sat_Translational_Dyn(~,y,u) %#codegen
     dy(4)=n^2*y(1)+2*n*y(5)+p.mu/(p.rt^2)-(eta)*(p.rt+y(1))+torques(1)/total_mass;
     dy(5)=-2*n*y(4)+n^2*y(2)-(eta)*y(2)+torques(2)/total_mass;
     dy(6)=-(eta)*y(3)+torques(3)/total_mass;
-    dy(7)=-sum(abs(u(:)))/(g*p.Isp);
+    dy(7)=-sum(abs(u))/(g*p.Isp);
     
 end
 

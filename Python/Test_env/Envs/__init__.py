@@ -4,7 +4,7 @@ from Envs.Snake_v0 import SnakeEnv
 from Envs.Satellite_rot import Satellite_rot
 from Envs.Satellite_tra import Satellite_tra
 
-__al__ = ["SnakeEnv", "Satellite_rot", "Satellite_tra"]
+__al__ = ["SnakeEnv", "Satellite_rot", "Satellite_tra", "MujSatEnv"]
 
 __version__ = "0.0.1"
 
@@ -34,6 +34,13 @@ register(
 register(
     id="Satellite-tra-v0",
     entry_point="Envs.Satellite_tra:Satellite_tra",
+    max_episode_steps=100_000,
+    reward_threshold=0.0,
+)
+
+register(
+    id="Satellite-mj-v0",
+    entry_point="Envs.Satellite_mujoco:MujSatEnv",
     max_episode_steps=100_000,
     reward_threshold=0.0,
 )

@@ -13,6 +13,7 @@ MODEL_XML_PATH = os.path.join(PATH, "assets", "satellite.xml")
 
 DEFAULT_CAMERA_CONFIG = {
     "distance": 4.0,
+    "id": 1,
 }
 
 
@@ -37,6 +38,8 @@ class MujSatEnv(MujocoEnv, utils.EzPickle):
         ctrl_cost_weight=0.1,
         distance_cost_weight=1.0,
         reset_noise_scale=5e-3,
+        camera_id=0,
+        frame_skip=2,
         **kwargs,
     ):
         utils.EzPickle.__init__(
@@ -57,6 +60,8 @@ class MujSatEnv(MujocoEnv, utils.EzPickle):
             2,
             observation_space=observation_space,
             default_camera_config=DEFAULT_CAMERA_CONFIG,
+            camera_id=camera_id,
+            frame_skip=frame_skip,
             **kwargs,
         )
         self.reset()
@@ -72,8 +77,10 @@ class MujSatEnv(MujocoEnv, utils.EzPickle):
         self, action: Any
     ) -> tuple[Any, SupportsFloat, bool, bool, dict[str, Any]]:
         self.do_simulation(action, self.frame_skip)
-        rewards = distance_cost = self.distance_cost()
-        costs = ctrl_cost = self.control_cost(action)
+        rewards = 0
+        distance_cost = self.distance_cost()
+        ctrl_cost = self.control_cost(action)
+        costs = ctrl_cost + distance_cost
         terminated = self.terminated
         observation = self._get_obs()
         info = dict(ctrl_cost=ctrl_cost, distance_cost=distance_cost)
@@ -103,7 +110,7 @@ class MujSatEnv(MujocoEnv, utils.EzPickle):
 
     @property
     def terminated(self):
-        pass
+        return False
 
     def get_body_cvel(self, body_name):
         return self.data.body(body_name).cvel
@@ -112,7 +119,7 @@ class MujSatEnv(MujocoEnv, utils.EzPickle):
         return self.data.body(body_name).xquat
 
     def _get_obs(self):
-        position = self.get_body_com("chaser")  # 3+4
+        position = self.get_body_com("chaser")  # 3
         rotation = self.get_body_xquat("chaser")  # 4
         velocity = self.get_body_cvel("chaser")  # 3+3
         observation = np.concatenate((position, rotation, velocity))  # 13
@@ -152,9 +159,5 @@ if __name__ == "__main__":
     import gymnasium
     import time
 
-    env = gymnasium.make("Ant-v4")
-    env_checker.check_env(env)
-    print(env.observation_space)
-
-    env = MujSatEnv(render_mode="human")
+    env = MujSatEnv(render_mode="human", camera_id=1)
     double_check_env(env)

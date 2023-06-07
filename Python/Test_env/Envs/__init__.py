@@ -35,13 +35,13 @@ register(
 register(
     id="Satellite-tra-v0",
     entry_point="Envs.Satellite_tra:Satellite_tra",
-    max_episode_steps=100_000,
+    max_episode_steps=60_000,
     reward_threshold=0.0,
 )
 
 register(
     id="Satellite-mj-v0",
     entry_point="Envs.Satellite_mujoco:MujSatEnv",
-    max_episode_steps=100_000,
+    max_episode_steps=60_000,
     reward_threshold=0.0,
 )

@@ -13,7 +13,6 @@ MODEL_XML_PATH = os.path.join(PATH, "assets", "satellite.xml")
 
 DEFAULT_CAMERA_CONFIG = {
     "distance": 4.0,
-    "id": 1,
 }
 
 
@@ -57,11 +56,10 @@ class MujSatEnv(MujocoEnv, utils.EzPickle):
         MujocoEnv.__init__(
             self,
             xml_file,
-            2,
+            frame_skip,
             observation_space=observation_space,
             default_camera_config=DEFAULT_CAMERA_CONFIG,
             camera_id=camera_id,
-            frame_skip=frame_skip,
             **kwargs,
         )
         self.reset()

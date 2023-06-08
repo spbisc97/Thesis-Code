@@ -38,7 +38,7 @@ env_name = "Satellite-mj-v0"
 Algo = PPO
 Algo.name = "PPO"
 # ENT = 0.01
-use_last_model = True
+use_last_model = False
 
 if use_last_model:
     date = input("Insert date: ")
@@ -68,7 +68,9 @@ def run_episode(
 ):
     term = False
     env = gym.make(
-        env_name, render_mode="rgb_array", camera_name="track", frame_skip=10
+        env_name,
+        render_mode="rgb_array",
+        camera_id=0,
     )
     env = RecordVideoV0(
         env,

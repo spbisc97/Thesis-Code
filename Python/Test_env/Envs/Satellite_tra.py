@@ -35,18 +35,22 @@ class Satellite_tra(gym.Env):
             "Qt4Agg",
             "MacOSX",
             "WX",
-            "GTK3",
+            "gtk3agg",
             "Agg",  # non gui backend
         ],
     }
 
     def __init__(
         self,
-        render_mode=None,
-        observation_space="MlpPolicy",
-        action_space="continuous",
-        control="Ml",
-        matplotlib_backend=None,
+        render_mode: str = None,
+        observation_space: str = "MlpPolicy",
+        action_space: str = "continuous",
+        control: str = "Ml",
+        matplotlib_backend: str = None,
+        starting_state: np.ndarray = np.array([0, 0, 0, 0, 0, 0]),
+        starting_noise: np.ndarray = np.array(
+            [80, 80, 80, 0.0008, 0.0008, 0.0008]
+        ),
     ):
         super(Satellite_tra, self).__init__()
         # define action and observation space being gymnasium.spaces
@@ -55,9 +59,13 @@ class Satellite_tra(gym.Env):
 
         assert action_space in self.metadata["action_spaces"]
         if action_space == "continuous":
-            self.action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float32)
+            self.action_space = spaces.Box(
+                low=-1, high=1, shape=(3,), dtype=np.float32
+            )
         else:
-            self.action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.int8)
+            self.action_space = spaces.Box(
+                low=-1, high=1, shape=(3,), dtype=np.int8
+            )
         #   or action_space in self.metadata['action_spaces']
         #   could be  better to use normalized action space
         assert observation_space in self.metadata["observation_spaces"]
@@ -80,7 +88,9 @@ class Satellite_tra(gym.Env):
                 }
             )
         # or render_mode in self.metadata['render_modes']
-        assert render_mode is None or render_mode in self.metadata["render_modes"]
+        assert (
+            render_mode is None or render_mode in self.metadata["render_modes"]
+        )
         self.render_mode = render_mode
         assert (matplotlib_backend in mpl.rcsetup.all_backends) or (
             matplotlib_backend is None
@@ -92,6 +102,8 @@ class Satellite_tra(gym.Env):
         self.dmax = 40000
         self.vmax = 2000
         self.prev_shaping = None
+        self.starting_state = starting_state
+        self.starting_noise = starting_noise
 
     def step(self, action):
         reward = 0
@@ -99,7 +111,9 @@ class Satellite_tra(gym.Env):
         truncated = False
         filtered_action = self._action_filter(action)
         self.chaser.move(filtered_action)
-        terminated = self._beyond_observational_space()  # or self.chaser.fuel_mass <= 0
+        terminated = (
+            self._beyond_observational_space()
+        )  # or self.chaser.fuel_mass <= 0
         observation = self._get_observation()
         reward = self._reward_function(action, terminated)
         if self.render_mode == "human" or self.render_mode == "rgb_array":
@@ -115,12 +129,8 @@ class Satellite_tra(gym.Env):
         self.chaser = Chaser()
         state = np.zeros((6,), dtype=np.float32)
         # state[random.randint(0,2)] = random.randint(-100, 100)
-        state[0:3] = np.random.default_rng().normal(
-            0, 80, size=(1, 3)
-        )  # (np.random.rand(1, 3) - 0.5) * 100
-        state[3:] = np.random.default_rng().normal(
-            0, 0.08, size=(1, 3)
-        )  # (np.random.rand(1, 3) - 0.5) * 0.01
+        # (np.random.rand(1, 3) - 0.5) * 0.01
+        state = np.random.normal(self.starting_state, self.starting_noise)
         self.chaser.set_state(state)
         self.prev_shaping = self._shape_reward()
         info = {}
@@ -137,11 +147,13 @@ class Satellite_tra(gym.Env):
 
     def render(self):
         if not self.render_mode or (
-            self.render_mode == "human" and (self.times[-1] - 1) % 200 != 0
+            self.render_mode == "human" and (self.times[-1] - 1) % 2000 != 0
         ):
             return
         if self.subplots == None:
-            fig, ax = plt.subplots(4, 3, figsize=(10, 10), layout="constrained")
+            fig, ax = plt.subplots(
+                4, 3, figsize=(10, 10), layout="constrained"
+            )
             fig.add_gridspec(hspace=30)
             lines = np.ma.zeros_like(ax)
             legend = np.array(
@@ -195,7 +207,9 @@ class Satellite_tra(gym.Env):
             (lines[3, 1],) = ax[3, 1].plot(
                 self.times[:-1], self.rewards_sum[:], linewidth=line_width
             )
-            (lines[3, 2],) = ax[3, 2].plot(self.times, self.fuels, linewidth=line_width)
+            (lines[3, 2],) = ax[3, 2].plot(
+                self.times, self.fuels, linewidth=line_width
+            )
 
             for idx, x in np.ndenumerate(ax):
                 # ax[idx[0], idx[1]].set_xlim(0, 100)
@@ -269,7 +283,9 @@ class Satellite_tra(gym.Env):
         self.statuses = np.vstack((self.statuses, sta))
         self.actions = np.vstack((self.actions, act))
         self.rewards = np.vstack((self.rewards, rew))
-        prev_rewards = 0 if len(self.rewards_sum) == 0 else self.rewards_sum[-1]
+        prev_rewards = (
+            0 if len(self.rewards_sum) == 0 else self.rewards_sum[-1]
+        )
         self.rewards_sum = np.vstack((self.rewards_sum, prev_rewards + rew))
         self.infos = np.vstack((self.infos, inf))
         self.times = np.vstack((self.times, self.times[-1] + self.chaser.step))
@@ -302,7 +318,9 @@ class Satellite_tra(gym.Env):
         # self.prev_shaping = shaping
 
         # Position Error Term
-        log_position_error_term = np.log(np.linalg.norm(self.chaser.state[:3]) + 1e-1)
+        log_position_error_term = np.log(
+            np.linalg.norm(self.chaser.state[:3]) + 1e-1
+        )
 
         # Control Effort Term
         control_effort_term = np.linalg.norm(action)
@@ -438,7 +456,8 @@ class Chaser:
         # self.state = sol.y[:, -1].astype(np.float32)
 
         self.fuel_mass = (
-            self.fuel_mass - np.sum(np.abs(trust)) / (self.g * self.Isp) * self.dt
+            self.fuel_mass
+            - np.sum(np.abs(trust)) / (self.g * self.Isp) * self.dt
         )
         pass
 
@@ -529,6 +548,7 @@ def test_env(render_mode=None, control="PID", matplotlib_backend=None):
     import time
 
     ep = 1
+    imgs = []
     for j in range(ep):
         obs, info = env.reset()
         while True:
@@ -537,8 +557,11 @@ def test_env(render_mode=None, control="PID", matplotlib_backend=None):
             if term or trunc:
                 x = env.render()
                 break
-
+        imgs.append(x)
         print(f"next {j+1}")
+    plt.imshow(np.concatenate(imgs, axis=1))
+    plt.show()
+    #
     env.close()
 
 
@@ -551,9 +574,9 @@ if __name__ == "__main__":
     register(
         id="Satellite-tra-v0",
         entry_point="Satellite_tra:Satellite_tra",
-        max_episode_steps=50000,
+        max_episode_steps=300_000,
         reward_threshold=0.0,
     )
-    test_env(render_mode="human", matplotlib_backend="TkAgg")
+    test_env(render_mode="rgb_array", matplotlib_backend="Qt5Agg")
 
     # snakeviz_profiler(test_env)

@@ -154,8 +154,19 @@ def double_check_env(env, warn=True):
 if __name__ == "__main__":
     print("Hello World!")
     from gymnasium.utils import env_checker
-    import gymnasium
+    import gymnasium as gym
     import time
+    from gymnasium.envs.registration import register
 
-    env = MujSatEnv(render_mode="human", camera_id=1)
+    register(
+        id="Satellite-mj-v0",
+        entry_point="Satellite_mujoco:MujSatEnv",
+        max_episode_steps=60_000,
+        reward_threshold=0.0,
+    )
+    env = gym.make(
+        "Satellite-mj-v0",
+        render_mode="human",
+    )
+
     double_check_env(env)

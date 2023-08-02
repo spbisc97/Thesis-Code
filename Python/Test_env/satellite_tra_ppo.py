@@ -80,7 +80,8 @@ def run_episode(
         if term or trunc:
             X = env.render()
             plt.imsave(
-                f"{imgs_dir}/{model_name}_{model_num}_{model_timesteps:.1e}.png", X
+                f"{imgs_dir}/{model_name}_{model_num}_{model_timesteps:.1e}.png",
+                X,
             )
             break
     env.close()
@@ -100,11 +101,11 @@ env = VecMonitor(env)
 # env = VecNormalize(env)
 
 # try a smaller network
-policy_kwargs = dict(
-    net_arch=dict(pi=[32, 32], vf=[32, 32]),
-    activation_fn=th.nn.ReLU,
-    ortho_init=False,
-)
+# policy_kwargs = dict(
+# net_arch=dict(pi=[32, 32], vf=[32, 32]),
+# activation_fn=th.nn.ReLU,
+# ortho_init=False,
+# )
 
 TIMESTEPS = 250_000
 if last_model > 0:
@@ -113,7 +114,6 @@ if last_model > 0:
         env=env,
         verbose=1,
         gamma=1,
-        n_steps=4096,
         # ent_coef=ENT,
         tensorboard_log=logdir,
         # policy_kwargs=policy_kwargs,
@@ -123,11 +123,10 @@ else:
         "MlpPolicy",
         env=env,
         verbose=1,
-        gamma=1,
-        n_steps=4096,
+        gamma=0.999,
         # ent_coef=ENT,
         tensorboard_log=logdir,
-        policy_kwargs=policy_kwargs,
+        # policy_kwargs=policy_kwargs,
     )
 episodes = 100
 run_episode(

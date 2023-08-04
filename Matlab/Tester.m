@@ -1,14 +1,15 @@
-function Tester(test_n,length_hours)
+function Tester(test_n, length_hours)
     %% Test file for the functions
     close all
     addpath('Auxiliary');
     tic
     %Choose Simulation
-    simulations = ["TranDyn", "AttDyn",  "Chaser_traj", "Chaser_Point_Attitude","Chaser_Point_Trajectory"];
+    simulations = ["TranDyn", "AttDyn", "Chaser_traj", "Chaser_Point_Attitude", "Chaser_Point_Trajectory"];
     
     if ~exist('test_n', 'var') || ~isnumeric(test_n)
         test_n = 4;
     end
+    
     if ~exist('length_hours', 'var') || ~isnumeric(length_hours)
         length_hours = 0.5;
     end
@@ -16,7 +17,11 @@ function Tester(test_n,length_hours)
     % Codegen if you want
     % codegen Sat_Attitude_Dyn -args {1,[0.5 0.5 0.5 0.5 0.3 0.2 -0.1 10],[0.001  0.02  -0.4]}
     % codegen Sat_Translational_Dyn -args {1,[10 -10 10 0.3 0.3 0.8 10],[0.001  0.02  -0.4]}
-    % codegen Sat_dyn -args {1,[10 10 -10 0.3 0.3 0.8 0.5 0.5 0.5 0.5 0.3 0.2 -0.1],[0.001  0.02  -0.4],[0.001  0.02  -0.4]}
+    % codegen Sat_dyn -args {1,[10 10 -10 0.3 0.3 0.8 0.5 0.5 0.5 0.5 0.3 0.2 -0.1 10],[0.001  0.02  -0.4],[0.001  0.02  -0.4]}
+    %codegen('Sat_dyn', ...
+    % '-args',...
+    % {1, [10; 10; -10; 0.3; 0.3; 0.8; 0.5; 0.5; 0.5; 0.5; 0.3; 0.2; -0.1; 10], [0.001; 0.02; -0.4], [0.001; 0.02; -0.4]},...
+    % '-o', 'Sat_dyn');
     
     test = simulations(test_n);
     
@@ -24,8 +29,7 @@ function Tester(test_n,length_hours)
     % Days=1;
     Hours = length_hours;
     
-    text="starting "+test+"for "+Hours+" hours";
-    
+    text = "starting "+test + "for "+Hours + " hours";
     
     disp(text)
     
@@ -53,7 +57,7 @@ function Tester(test_n,length_hours)
         
         y0 = [q0; va0; M0];
         
-        u = @(t) 1e-15 * [sin(t/5e+5); 1e-2*cos(t/1e+4); 1e-3*sin(t/1e+3)];
+        u = @(t)1e-15 * [sin(t / 5e+5); 1e-2 * cos(t / 1e+4); 1e-3 * sin(t / 1e+3)];
         [t, y] = ode45(@(t, y) Sat_Attitude_Dyn(t, y, u(t)), tspan, y0);
         toc
         attitude_plotter(t, y, [1; 0; 0; 0; 0; 0; 0]' .* ones(length(t), 1));
@@ -126,7 +130,7 @@ function Tester(test_n,length_hours)
         %f_goal_traj=@(y) [0;0];
         
         %% Initial Conditions
-        eulZYX = (rand(1,3)-0.5)*pi;
+        eulZYX = (rand(1, 3) - 0.5) * pi;
         %eulZYX = [1, -0.5, 3];
         q0 = eul2quat(eulZYX)';
         y0_att = [q0; 0; 0; 0];
@@ -135,19 +139,21 @@ function Tester(test_n,length_hours)
         y0 = [y0_tra; y0_att; y0_mass];
         counter = 1;
         
-        for t = tspan(1:end-1)
+        for t = tspan(1: end - 1)
             
             counter = counter + 1;
-            y_goal_traj(counter, :) = y_goal_traj(counter-1, :);
+            y_goal_traj(counter, :) = y_goal_traj(counter - 1, :);
             
             %t = t + step;
         end
-        [tspan, y_traj, u_traj] = Chaser(t, y0, y_goal_traj,tspan);
+        
+        [tspan, y_traj, u_traj] = Chaser(t, y0, y_goal_traj, tspan);
         
         toc
         plotter(tspan, y_traj, y_goal_traj, u_traj)
         
     end
+    
     %% Chase Point Trajectory
     if test == "Chaser_Point_Trajectory"
         step = 0.5;
@@ -169,24 +175,26 @@ function Tester(test_n,length_hours)
         eulZYX = [0, -0, 0];
         q0 = eul2quat(eulZYX)';
         y0_att = [q0; 0; 0; 0];
-        y0_tra = [1; 4; 1; 0; 0; 0];
+        y0_tra = [1000; 400; 10; 0; 0; 0];
         y0_mass = Sat_params().fuel_mass;
         y0 = [y0_tra; y0_att; y0_mass];
         counter = 1;
         
-        for t = tspan(1:end-1)
+        for t = tspan(1: end - 1)
             
             counter = counter + 1;
-            y_goal_traj(counter, :) = y_goal_traj(counter-1, :);
+            y_goal_traj(counter, :) = y_goal_traj(counter - 1, :);
             
             %t = t + step;
         end
-        [tspan, y_traj, u_traj] = Chaser(t, y0, y_goal_traj,tspan);
+        
+        [tspan, y_traj, u_traj] = Chaser(t, y0, y_goal_traj, tspan);
         
         toc
         plotter(tspan, y_traj, y_goal_traj, u_traj)
         
     end
+    
 end
 
 %% Plotter
@@ -326,6 +334,3 @@ function fig = attitude_plotter(tspan, y, y_goal)
     title("Angular velocity")
     
 end
-
-
-

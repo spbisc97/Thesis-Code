@@ -546,9 +546,9 @@ def quaternion_to_euler(q):
 def test_env():
     env = gym.make(
         "Satellite-rot-v0",
-        render_mode="human",
+        render_mode=None,
         control="PID",
-        matplotlib_backend="TkAgg",
+        matplotlib_backend=None,
     )
     print("env checked")
     term = False
@@ -617,6 +617,13 @@ def pstats_profiler(fun):
     stats = pstats.Stats(prof).strip_dirs().sort_stats("cumtime")
     stats.print_stats(100)  # top 100 rows
 
+def scalene_profiler(fun):
+    from scalene import scalene_profiler
+    scalene_profiler.start()
+    fun()
+    scalene_profiler.stop()
+
+    
 
 if __name__ == "__main__":
     from stable_baselines3 import PPO
@@ -627,12 +634,14 @@ if __name__ == "__main__":
     register(
         id="Satellite-rot-v0",
         entry_point="Satellite_rot:Satellite_rot",
-        max_episode_steps=10000,
+        max_episode_steps=1000,
         reward_threshold=0.0,
     )
     from stable_baselines3.common.env_checker import check_env
 
     check_env(Satellite_rot(), warn=True)
     print("env checked")
-    test_env()
+    #test_env()
     #snakeviz_profiler(test_env)
+    
+    #scalene_profiler(test_env)

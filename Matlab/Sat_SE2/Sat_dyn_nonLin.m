@@ -1,13 +1,11 @@
-function dw=Sat_dyn(~,w,u,p,nonLinear)
+function dw=Sat_dyn_nonLin(~,w,u,p)
 %Satellite nonlinear dynamics
 arguments
     ~
-    w 
-    u 
+    w (6,1)
+    u (2,1)
     p 
-    nonLinear 
 end
-
 
 
     %u is a 3x1 vector containing the following control inputs
@@ -66,8 +64,8 @@ end
     dw(1)=x_dot;
     dw(2)=y_dot;
     dw(3)=phi_dot;
-    dw(4)=(3-2*nonLinear)*(n^2*x)+(2*n*y_dot)+nonLinear*((p.mu/(p.rt^2))-((eta)*(p.rt+x)))+(torques(1)/mass);
-    dw(5)=(-2*n*x_dot)+nonLinear*((n^2*y)-((eta)*y))+(torques(2)/mass);
+    dw(4)=(n^2*x)+(2*n*y_dot)+(p.mu/(p.rt^2))-((eta)*(p.rt+x))+(torques(1)/mass);
+    dw(5)=(-2*n*x_dot)+(n^2*y)-((eta)*y)+(torques(2)/mass);
     dw(6)=p.invI*torques(3)/mass;
 end
 

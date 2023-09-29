@@ -54,6 +54,8 @@ if test==1
     plot(w1(:,1),w1(:,2),'DisplayName','w2')
     legend
     grid on
+    xlabel("x")
+    ylabel("y")
     plot_settings(f,"manual")
 
 
@@ -147,6 +149,43 @@ if test==2
 
 end
 if test==3
+    %%test the docoupled system with LQR
+    syms w [6,1]
+    syms u [3,1]
+    p=Sat_params();
+    dw=Sat_dyn_Lin_Decoupled(0,w,u,p);
+    A=eval(jacobian(dw,w))
+    B=eval(jacobian(dw,u))
+
+    k=lqr(A,B,eye(6)*1e-5,eye(1)*1e7);
+
+    y0=5*1e3;
+
+    initialconditions=[0 y0 0 y0/2000 0 0]';
+    days=1;
+    stepsize=0.05;
+    timespan=1:stepsize:3600*24*days;
+    
+    %I could try adding absolute tol
+
+    control=@(t,w) -k*w ;
+    fh=@(t,w) Sat_dyn_Lin_Decoupled(t,w,control(t,w),p);
+
+    tic
+    [t1,w1]=Euler(fh,timespan,initialconditions); 
+    toc
+
+    f=figure(2);
+    plot(w1(:,1),w1(:,2),'--','DisplayName','w1')
+    
+    xlabel("x")
+    ylabel("y")
+
+    grid on
+    legend
+    plot_settings(f)
+
+
 
 end
 

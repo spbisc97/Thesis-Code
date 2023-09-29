@@ -161,7 +161,7 @@ if test==3
 
     y0=5*1e3;
 
-    initialconditions=[0 y0 0 y0/2000 0 0]';
+    initialconditions=[0 y0 pi y0/2000 0 0]';
     days=1;
     stepsize=0.05;
     timespan=1:stepsize:3600*24*days;
@@ -183,7 +183,7 @@ if test==3
 
     grid on
     legend
-    plot_settings(f)
+    plot_settings(f,"manual")
 
 
 

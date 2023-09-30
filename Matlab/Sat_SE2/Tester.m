@@ -1,6 +1,7 @@
 clear all
 close all
 addpath("Auxiliary/")
+addpath("Simulink/")
 if ~exist("test","var")
     test=0;
     test_desc="" + ...
@@ -82,16 +83,16 @@ if test==2
     stepsize=0.05;
     timespan=1:stepsize:3600*24*days;
     opts = odeset('MaxStep',stepsize*2); %avoid if possible,but tolerance is too low
-    %opts = odeset("RelTol",1e-10); %1e-8 seems to be enought, means ~ 1cm accuracy, 
+    %opts = odeset("RelTol",1e-10); %1e-8 seems to be enought, means ~ 1cm accuracy,
     %adding this to ode makes it much accurate but a little slower than rk4
-    
+
     %I could try adding absolute tol
 
     control=@(t) [1e-2;1e-2*sin(t/10000+pi/2)]' ;
     fh=@(t,w) Sat_dyn_Lin(t,w,control(t),p);
 
     tic
-    [t1,w1]=ode45(fh,timespan,initialconditions,opts); %Dormand–Prince 
+    [t1,w1]=ode45(fh,timespan,initialconditions,opts); %Dormand–Prince
     toc
     tic
     [t2,w2]=RK4(fh,timespan,initialconditions);
@@ -154,8 +155,8 @@ if test==3
     syms u [3,1]
     p=Sat_params();
     dw=Sat_dyn_Lin_Decoupled(0,w,u,p);
-    A=eval(jacobian(dw,w))
-    B=eval(jacobian(dw,u))
+    A=eval(jacobian(dw,w));
+    B=eval(jacobian(dw,u));
 
     k=lqr(A,B,eye(6)*1e-5,eye(1)*1e7);
 
@@ -165,19 +166,19 @@ if test==3
     days=1;
     stepsize=0.05;
     timespan=1:stepsize:3600*24*days;
-    
+
     %I could try adding absolute tol
 
     control=@(t,w) -k*w ;
     fh=@(t,w) Sat_dyn_Lin_Decoupled(t,w,control(t,w),p);
 
     tic
-    [t1,w1]=Euler(fh,timespan,initialconditions); 
+    [t1,w1]=Euler(fh,timespan,initialconditions);
     toc
 
     f=figure(2);
     plot(w1(:,1),w1(:,2),'--','DisplayName','w1')
-    
+
     xlabel("x")
     ylabel("y")
 
@@ -188,6 +189,74 @@ if test==3
 
 
 end
+if test==4
+    %simulink init
+    global A B C D Q R N
+    y0=5*1e3;
+    syms w [6,1]
+    syms u [3,1]
+    p=Sat_params();
+    initialconditions=[0 y0 pi y0/2000 0 0]';
+
+    dw=Sat_dyn_Lin_Decoupled(0,w,u,p);
+    A=eval(jacobian(dw,w));
+    B=eval(jacobian(dw,u));
+    
+    clear w
+    clear u
+    
+    [n,m]=size(B);
+    C=eye(n);
+    D=zeros(n,m);
+    Q=eye(6);
+    R=eye(3);
+    N=100;
+
+    k=lqr(A,B,Q,R);
+    
+
+
+end
+if test==5
+        global A B C D Q R N
+
+    y0=5*1e3;
+    syms w [6,1]
+    syms u [2,1]
+    p=Sat_params();
+    initialconditions=[0 y0 pi y0/2000 0 0]';
+
+    dw=Sat_dyn_Lin(0,w,u,p);
+    A=eval(jacobian(dw,w));
+    A=subs(A,[u1,u2],[0,0]);
+    B=eval(jacobian(dw,u));
+    B=matlabFunction(B,'Vars',w3);
+    
+    [n,m]=size(B);
+    C=eye(n);
+    D=zeros(n,m);
+    Q=eye(n);
+    R=eye(m);
+    N=100;
+
+        
+end
+if test==6
+
+    y0=5*1e3;
+    syms w [6,1]
+    syms u [2,1]
+    p=Sat_params();
+    initialconditions=[0 y0 pi y0/2000 0 0]';
+
+    dw=Sat_dyn_Lin(0,w,u,p);
+
+    V=1/2*((w1)^2 + (w2)^2 + (w3)^2 + (w4)^2 + (w5)^2 + (w6)^2);
+    dV=w1*dw(1)+w2*dw(2)+w3*dw(3)+w4*dw(4)+w5*dw(5)+w6*dw(6);
+end
+
+
+
 
 
 function plot_settings(figure,aspect)

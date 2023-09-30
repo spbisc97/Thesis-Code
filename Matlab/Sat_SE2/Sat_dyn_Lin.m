@@ -30,7 +30,7 @@ end
 
 %check direction of arrays
 w=w(:);
-dw=zeros(6,1);
+dw=w;%zeros(6,1);
 u=u(:);
 
 %Satellite dynamics

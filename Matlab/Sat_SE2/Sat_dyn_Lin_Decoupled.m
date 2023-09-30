@@ -2,8 +2,8 @@ function dw=Sat_dyn_Lin_Decoupled(~,w,u,p)
 %Satellite linear dynamics
 arguments
     ~
-    w
-    u
+    w (6,1)
+    u (3,1)
     p
 end
 

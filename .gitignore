@@ -57,6 +57,7 @@ Python/Random/*
 venv/
 oryx-build-commands.txt
 .spyproject/*
+.idea/*
 .devcontainer/devcontainer.json
 Matlab/Random/*
 !Python/Random/But_to_remember/

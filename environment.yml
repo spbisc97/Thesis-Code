@@ -1,7 +1,9 @@
 # create environment in place
-# conda env create --file environment.yml --prefix ./venv --quiet
+# conda|mamba env create --file environment.yml --prefix ./venv --quiet
 name: default-RL
 
+channels:
+  - conda-forge
 dependencies:
   - python==3.10.11
   - pip==23.0.1

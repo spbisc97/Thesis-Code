@@ -16,8 +16,8 @@
     "python.linting.lintOnSave": true,
     "black-formatter.importStrategy": "fromEnvironment",
     "black-formatter.args": [
-        "--preview",
-        "--line-length 79"
+        "-l 79",
+        "--preview"
     ]
 
 }

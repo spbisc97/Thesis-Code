@@ -1,27 +1,3 @@
-"""
-    A gym environment for simulating the motion of a satellite in 2D space.
-
-    The Chaser is modeled as a rigid body with three degrees of freedom, and is controlled by action.
-    The goal of the chaser is to approach and dock with a target spacecraft, while avoiding collisions and minimizing fuel usage.
-
-    The observation of the system is represented by a 10-dimensional vector, consisting of:
-    - the position of the chaser in R2
-    - the direction vector of the chaser in R2
-    - the orientation vector of the target in R2
-    - the velocity of the chaser in R2
-    - the angular velocity of the chaser in R1
-    - the angular velocity of the target in R1
-
-    The action space is either 2-dimensional or 3-dimensional, depending on whether the environment is underactuated or not.
-    The action represents the thrust vector applied by the chaser spacecraft.
-
-    The reward function is a combination of the negative logarithm of the distance between the chaser and target spacecrafts,
-    and the squared magnitude of the thrust vector.
-    """
-
-# rest of the code...
-
-
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
@@ -48,10 +24,13 @@ class Satellite_SE2(gym.Env):
     """
     A gym environment for simulating the motion of a satellite in 2D space.
 
-    The Chaser is modeled as a rigid body with three degrees of freedom, and is controlled by action.
-    The goal of the chaser is to approach and dock with a target spacecraft, while avoiding collisions and minimizing fuel usage.
+    The Chaser is modeled as a rigid body with three degrees of freedom,
+    and is controlled by action.
+    The goal of the chaser is to approach and dock with a target spacecraft,
+    while avoiding collisions and minimizing fuel usage.
 
-    The observation of the system is represented by a 10-dimensional vector, consisting of:
+    The observation of the system is represented by a 10-dimensional vector,
+    consisting of:
     - the position of the chaser in R2
     - the direction vector of the chaser in R2
     - the orientation vector of the target in R2
@@ -59,10 +38,12 @@ class Satellite_SE2(gym.Env):
     - the angular velocity of the chaser in R1
     - the angular velocity of the target in R1
 
-    The action space is either 2-dimensional or 3-dimensional, depending on whether the environment is underactuated or not.
+    The action space is either 2-dimensional or 3-dimensional, depending
+    on whether the environment is underactuated or not.
     The action represents the thrust vector applied by the chaser spacecraft.
 
-    The reward function is a combination of the negative logarithm of the distance between the chaser and target spacecrafts,
+    The reward function is a combination of the negative logarithm of the
+    distance between the chaser and target spacecrafts,
     and the squared magnitude of the thrust vector.
     """
 
@@ -76,7 +57,9 @@ class Satellite_SE2(gym.Env):
         self,
         render_mode: Optional[str] = None,
         underactuated: Optional[bool] = True,
-        starting_state: Optional[np.ndarray] = np.zeros((8,), dtype=np.float32),
+        starting_state: Optional[np.ndarray] = np.zeros(
+            (8,), dtype=np.float32
+        ),
         starting_noise: Optional[np.ndarray] = np.array(
             [10, 10, np.pi / 2, 1e-5, 1e-5, 1e-4, 0, 0]
         ),
@@ -118,7 +101,9 @@ class Satellite_SE2(gym.Env):
         info = {}
         return observation, info
 
-    def step(self, action: np.ndarray) -> tuple[Any, float, bool, bool, dict[str, Any]]:
+    def step(
+        self, action: np.ndarray
+    ) -> tuple[Any, float, bool, bool, dict[str, Any]]:
         assert self.action_space.contains(
             action
         ), f"{action!r} ({type(action)}) invalid"
@@ -226,7 +211,8 @@ class Satellite_SE2(gym.Env):
             else:
                 self.control = np.zeros((3,), dtype=np.float32)
                 self.control_space = 3  # avoid gym space check
-                # would be nice to have a check control space each time but would slow down the code
+                # would be nice to have a check control space each time but
+                # would slow down the code
             return
 
         def set_state(self, state=np.zeros((6,), dtype=np.float32)):
@@ -247,14 +233,18 @@ class Satellite_SE2(gym.Env):
             dw = np.zeros((6,), dtype=np.float32)
             torque = np.zeros((3,), dtype=np.float32)
             if self.underactuated:
-                torque = np.array([np.sin(w[2]) * u[0], np.cos(w[2]) * u[0], u[1]])
+                torque = np.array(
+                    [np.sin(w[2]) * u[0], np.cos(w[2]) * u[0], u[1]]
+                )
             else:
                 torque = u
 
             dw[0] = w[3]
             dw[1] = w[4]
             dw[2] = w[5]
-            dw[3] = (3 * (NU**2) * w[0]) + (2 * NU * w[4]) + (torque[0] / MASS)
+            dw[3] = (
+                (3 * (NU**2) * w[0]) + (2 * NU * w[4]) + (torque[0] / MASS)
+            )
             dw[4] = (-2 * NU * w[5]) + (torque[2] / MASS)
             dw[5] = INERTIA_INV * torque[1]
             return dw
@@ -293,7 +283,9 @@ class Satellite_SE2(gym.Env):
             self.set_state(state)
             return
 
-        def set_state(self, state: np.array = np.zeros((2,), dtype=np.float32)):
+        def set_state(
+            self, state: np.array = np.zeros((2,), dtype=np.float32)
+        ):
             self.state = np.float32(state)
             return
 

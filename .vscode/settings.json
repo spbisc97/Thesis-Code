@@ -6,11 +6,6 @@
         "editor.defaultFormatter": "ms-python.black-formatter"
         
     },
-    "python.formatting.blackArgs": [
-        "--line-length",
-        "79",
-        "--skip-string-normalization",
-    ],
     "[matlab]": { 
         "files.encoding": "windows1252",
         "editor.formatOnSave": true,
@@ -19,6 +14,10 @@
     "files.autoSave": "afterDelay",
     "files.autoSaveDelay": 10000,
     "python.linting.lintOnSave": true,
-    "black-formatter.importStrategy": "fromEnvironment"
+    "black-formatter.importStrategy": "fromEnvironment",
+    "black-formatter.args": [
+        "--preview",
+        "--line-length 79"
+    ]
 
 }

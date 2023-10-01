@@ -76,9 +76,7 @@ class Satellite_SE2(gym.Env):
         self,
         render_mode: Optional[str] = None,
         underactuated: Optional[bool] = True,
-        starting_state: Optional[np.ndarray] = np.zeros(
-            (8,), dtype=np.float32
-        ),
+        starting_state: Optional[np.ndarray] = np.zeros((8,), dtype=np.float32),
         starting_noise: Optional[np.ndarray] = np.array(
             [10, 10, np.pi / 2, 1e-5, 1e-5, 1e-4, 0, 0]
         ),
@@ -120,9 +118,7 @@ class Satellite_SE2(gym.Env):
         info = {}
         return observation, info
 
-    def step(
-        self, action: np.ndarray
-    ) -> tuple[Any, float, bool, bool, dict[str, Any]]:
+    def step(self, action: np.ndarray) -> tuple[Any, float, bool, bool, dict[str, Any]]:
         assert self.action_space.contains(
             action
         ), f"{action!r} ({type(action)}) invalid"
@@ -251,18 +247,14 @@ class Satellite_SE2(gym.Env):
             dw = np.zeros((6,), dtype=np.float32)
             torque = np.zeros((3,), dtype=np.float32)
             if self.underactuated:
-                torque = np.array(
-                    [np.sin(w[2]) * u[0], np.cos(w[2]) * u[0], u[1]]
-                )
+                torque = np.array([np.sin(w[2]) * u[0], np.cos(w[2]) * u[0], u[1]])
             else:
                 torque = u
 
             dw[0] = w[3]
             dw[1] = w[4]
             dw[2] = w[5]
-            dw[3] = (
-                (3 * (NU**2) * w[0]) + (2 * NU * w[4]) + (torque[0] / MASS)
-            )
+            dw[3] = (3 * (NU**2) * w[0]) + (2 * NU * w[4]) + (torque[0] / MASS)
             dw[4] = (-2 * NU * w[5]) + (torque[2] / MASS)
             dw[5] = INERTIA_INV * torque[1]
             return dw
@@ -301,9 +293,7 @@ class Satellite_SE2(gym.Env):
             self.set_state(state)
             return
 
-        def set_state(
-            self, state: np.array = np.zeros((2,), dtype=np.float32)
-        ):
+        def set_state(self, state: np.array = np.zeros((2,), dtype=np.float32)):
             self.state = np.float32(state)
             return
 
@@ -352,9 +342,9 @@ def _test2(underactuated=True):
 def _test3(underactuated=True):
     from stable_baselines3 import PPO
 
-    model = PPO('MlpPolicy', 'Satellite_SE2-v0').learn(100000)
+    model = PPO("MlpPolicy", "Satellite_SE2-v0").learn(100000)
 
-    env = gym.make('Satellite_SE2-v0', underactuated=underactuated)
+    env = gym.make("Satellite_SE2-v0", underactuated=underactuated)
     observation, info = env.reset()
     observations = [observation]
     rewards = []

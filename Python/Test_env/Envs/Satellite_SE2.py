@@ -6,7 +6,10 @@ from typing import (
     Optional,
     SupportsFloat,
 )
+import matplotlib
 import matplotlib.pyplot as plt
+
+matplotlib.rcParams["figure.raise_window"] = False
 
 INERTIA = 4.17e-2  # [kg*m^2]
 INERTIA_INV = 23.9808  # 1/INERTIA
@@ -18,6 +21,18 @@ FMAX = 1.05e-3  # [N]
 TMAX = 6e-3  # [Nm]
 FTMAX = 6e-3  # just to clip with the same value for
 STEP = 0.05  # [s]
+
+VROT_MAX = 1  # [rad/s]
+VTRANS_MAX = 10  # [m/s]
+
+XY_MAX = 1000  # [m]
+
+XY_PLOT_MAX = 1000  # [m]
+
+
+STARTING_STATE = np.array([0, 1000, 0, 0, 0, 0, 0, 0], dtype=np.float32)
+
+STARTING_NOISE = np.array([10, 10, np.pi / 2, 1e-5, 1e-5, 1e-4, 0, 0])
 
 
 class Satellite_SE2(gym.Env):
@@ -47,22 +62,14 @@ class Satellite_SE2(gym.Env):
     and the squared magnitude of the thrust vector.
     """
 
-    metadata = ({"render.modes": ["human", "rgb_array", None]},)
-    vrot_max = 1
-    vtrans_max = 10
-    vrot_min = -1
-    vtrans_min = -10
+    metadata = {"render_modes": ["human", "graph", "rgb_array", None]}
 
     def __init__(
         self,
         render_mode: Optional[str] = None,
         underactuated: Optional[bool] = True,
-        starting_state: Optional[np.ndarray] = np.zeros(
-            (8,), dtype=np.float32
-        ),
-        starting_noise: Optional[np.ndarray] = np.array(
-            [10, 10, np.pi / 2, 1e-5, 1e-5, 1e-4, 0, 0]
-        ),
+        starting_state: Optional[np.ndarray] = STARTING_STATE,
+        starting_noise: Optional[np.ndarray] = STARTING_NOISE,
         unit_action_space: Optional[bool] = True,
         max_action=FTMAX,
     ):
@@ -76,6 +83,15 @@ class Satellite_SE2(gym.Env):
         self.max_action = max_action
         self.starting_state = starting_state
         self.starting_noise = starting_noise
+        self.render_mode = render_mode
+        # Added fix and axes for rendering
+        self.fig = None
+        self.ax = None
+        self.xylim = XY_PLOT_MAX
+        # Added lists for storing historical data plotting
+        self.state_history = []
+        self.action_history = []
+        self.time_step = 0
 
         self.build_action_space()
 
@@ -83,10 +99,10 @@ class Satellite_SE2(gym.Env):
             low=-np.inf, high=np.inf, shape=(10,), dtype=np.float32
         )
         self.steps_beyond_done = None
-
         self.chaser = self.Chaser(underactuated=underactuated)
         self.target = self.Target()
         self.reset()
+        self.xylim = self.chaser.radius() * 1.25
 
         return
 
@@ -94,9 +110,24 @@ class Satellite_SE2(gym.Env):
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Any, dict[str, Any]]:
         super().reset(seed=seed, options=options)
-        state = self.__generate_random_state()
-        self.chaser.reset(state[0:6])
-        self.target.reset(state[6:8])
+        random_state = self.__generate_random_state()
+        # set a not really stable initial traejctory
+        chaser_stable_random = np.hstack(
+            (
+                0,
+                random_state[1],
+                random_state[2],
+                random_state[1] / 2000,
+                0,  # random_state[0] * 2e-3,
+                random_state[5],
+            )
+        )
+
+        self.chaser.reset(chaser_stable_random)
+        for _ in range(np.random.randint(10, 500)):
+            self.chaser.step()
+
+        self.target.reset(random_state[6:8])
         observation = self.__get_observation()
         info = {}
         return observation, info
@@ -107,20 +138,155 @@ class Satellite_SE2(gym.Env):
         assert self.action_space.contains(
             action
         ), f"{action!r} ({type(action)}) invalid"
-        self.chaser.set_control(action)
+        self.chaser.set_control(self.__action_filter(action))
         self.chaser.step()
+        self.time_step += 1  # Increment the time_step at each step.
         terminated = self.__termination()
         truncated = False
         reward = self.__reward()
         observation = self.__get_observation()
         info = {}
+
+        self.render()  # Update the rendering after every action
+
         return observation, reward, terminated, truncated, info
 
     def render(self):
-        return super().render()
+        """Render the environment."""
+        if self.render_mode == "human":
+            if self.fig is None or self.ax is None:
+                self.fig, self.ax = plt.subplots()
+                self.ax.set_xlim(-self.xylim, self.xylim)
+                self.ax.set_ylim(-self.xylim, self.xylim)
+                self.ax.set_title("Satellite SE2 Environment")
+                plt.ion()  # Turn on interactive mode
+
+            if self.time_step % 100 != 0:
+                return
+            # Clear the axis for new drawings
+            self.ax.clear()
+
+            # Draw the target (stationary at the center)
+            self.ax.scatter(0, 0, color="red", s=100, label="Target")
+
+            # Draw the target orientation
+            theta = self.target.get_state()
+            length = 5.0
+            end_x = length * np.cos(theta[0])
+            end_y = length * np.sin(theta[0])
+            self.ax.plot(
+                [0, end_x],
+                [0, end_y],
+                color="red",
+            )
+
+            # Draw the chaser satellite
+            chaser_state = self.chaser.get_state()
+            self.ax.scatter(
+                chaser_state[0],
+                chaser_state[1],
+                color="blue",
+                s=50,
+                label="Chaser",
+            )
+
+            # Draw velocity vector of chaser
+            self.ax.arrow(
+                chaser_state[0],
+                chaser_state[1],
+                chaser_state[3],
+                chaser_state[4],
+                color="blue",
+                head_width=1.5,
+                head_length=2.0,
+            )
+
+            # Draw orientation of chaser as a short line
+            length = 5.0
+            end_x = chaser_state[0] + length * np.cos(chaser_state[2])
+            end_y = chaser_state[1] + length * np.sin(chaser_state[2])
+            self.ax.plot(
+                [chaser_state[0], end_x],
+                [chaser_state[1], end_y],
+                color="green",
+            )
+
+            # Legend, grid, and title
+            self.ax.legend()
+            self.ax.grid(True)
+            self.ax.set_xlim(-self.xylim, self.xylim)
+            self.ax.set_ylim(-self.xylim, self.xylim)
+            self.ax.set_title("Satellite SE2 Environment")
+
+            # Display timestamp relative to the plot time
+            self.fig.suptitle(f"Time: {self.time_step*STEP} s", fontsize=12)
+
+            # Display the plot
+            plt.pause(0.00001)  # Pause to show frame
+
+        if self.render_mode == "graph":
+            self.state_history.append(self.__get_state())
+            self.action_history.append(self.chaser.get_control())
+
+            if False:  # if np.size(self.action_history, 1) % 2 == 0:
+                return
+
+            if self.fig is None or self.axs is None:
+                self.fig, self.axs = plt.subplots(5, 1, figsize=(10, 15))
+                plt.ion()  # Turn on interactive mode
+
+            for ax in self.axs:
+                ax.clear()
+
+            # State history to numpy array
+            state_history = np.array(self.state_history)
+
+            # Plot positions
+            self.axs[0].plot(state_history[:, 0], label="x position")
+            self.axs[0].plot(state_history[:, 1], label="y position")
+            self.axs[0].set_ylabel("Position")
+            self.axs[0].legend(loc="upper right")
+
+            # Plot velocities
+            self.axs[1].plot(state_history[:, 2], label="x velocity")
+            self.axs[1].plot(state_history[:, 3], label="y velocity")
+            self.axs[1].set_ylabel("Velocity")
+            self.axs[1].legend(loc="upper right")
+
+            # Plot angle
+            self.axs[2].plot(state_history[:, 4], label="Chaser Angle")
+            self.axs[2].plot(state_history[:, 6], label="Target Angle")
+            self.axs[2].set_ylabel("Angle (radians)")
+            self.axs[2].legend(loc="upper right")
+
+            # Plot angle speed
+            self.axs[3].plot(
+                state_history[:, 5], label="Chaser Angular Velocity"
+            )
+            self.axs[3].plot(
+                state_history[:, 7], label="Target Angular Velocity"
+            )
+            self.axs[3].set_ylabel("Angular velocity (radians/s)")
+            self.axs[3].legend(loc="upper right")
+
+            # Plot actions
+            self.axs[4].plot(
+                self.action_history, label="Actions", linestyle="-", marker="o"
+            )
+            self.axs[4].set_ylabel("Action")
+            self.axs[4].set_xlabel("Timesteps")
+            self.axs[4].legend(loc="upper right")
+
+            # Display timestamp relative to the plot time
+
+            plt.pause(0.00001)  # Pause to show frame
+
+        return
 
     def close(self) -> None:
         super().close()
+        if self.fig:
+            plt.close(self.fig)
         return
 
     def __get_observation(self) -> np.ndarray:
@@ -141,16 +307,23 @@ class Satellite_SE2(gym.Env):
 
         return observation
 
+    def __get_state(self) -> np.ndarray:
+        w = self.chaser.get_state()
+        theta = self.target.get_state()
+        state = np.zeros((10,), dtype=np.float32)
+        state = np.concatenate((w, theta))
+        return state
+
     def __generate_random_state(self):
         state = np.random.normal(self.starting_state, self.starting_noise)
         return state
 
     def __reward(self):
         reward = 0.5
-        ch_state = self.chaser.get_state()
+        ch_radius = self.chaser.radius()
         ch_control = self.chaser.get_control()
 
-        reward += (-np.log10((ch_state[0]) ** 2 + (ch_state[1]) ** 2)) - (
+        reward += (-np.log10(ch_radius + 1e-3)) - (
             ch_control[0] ** 2 + ch_control[1] ** 2
         )
         return reward
@@ -202,13 +375,17 @@ class Satellite_SE2(gym.Env):
                 self.set_state()
             else:
                 self.set_state(state)
-            assert underactuated is True | False
+            assert underactuated in [True, False]
             self.underactuated = underactuated
 
             if underactuated:
+                self.__sat_dyn = self.__sat_dyn_underactuated
+
                 self.control = np.zeros((2,), dtype=np.float32)
                 self.control_space = 2  # avoid gym space check
             else:
+                self.__sat_dyn = self.__sat_dyn_fullyactuated
+
                 self.control = np.zeros((3,), dtype=np.float32)
                 self.control_space = 3  # avoid gym space check
                 # would be nice to have a check control space each time but
@@ -229,24 +406,39 @@ class Satellite_SE2(gym.Env):
         def get_control(self):
             return self.control
 
-        def __sat_dyn(self, t: SupportsFloat, w: np.ndarray, u: np.ndarray):
+        def __sat_dyn_underactuated(
+            self, t: SupportsFloat, w: np.ndarray, u: np.ndarray
+        ):
+            # u = [fx, tau]
             dw = np.zeros((6,), dtype=np.float32)
-            torque = np.zeros((3,), dtype=np.float32)
-            if self.underactuated:
-                torque = np.array(
-                    [np.sin(w[2]) * u[0], np.cos(w[2]) * u[0], u[1]]
-                )
-            else:
-                torque = u
 
             dw[0] = w[3]
             dw[1] = w[4]
             dw[2] = w[5]
             dw[3] = (
-                (3 * (NU**2) * w[0]) + (2 * NU * w[4]) + (torque[0] / MASS)
+                (3 * (NU**2) * w[0])
+                + (2 * NU * w[4])
+                + (np.sin(w[2]) * u[0] / MASS)
             )
-            dw[4] = (-2 * NU * w[5]) + (torque[2] / MASS)
-            dw[5] = INERTIA_INV * torque[1]
+
+            dw[4] = (-2 * NU * w[3]) + (np.cos(w[2]) * u[0] / MASS)
+            dw[5] = INERTIA_INV * u[1]
+
+            return dw
+
+        def __sat_dyn_fullyactuated(
+            self, t: SupportsFloat, w: np.ndarray, u: np.ndarray
+        ):
+            # u = [fx, fu, tau]
+            dw = np.zeros((6,), dtype=np.float32)
+
+            dw[0] = w[3]
+            dw[1] = w[4]
+            dw[2] = w[5]
+            dw[3] = (3 * (NU**2) * w[0]) + (2 * NU * w[4]) + (u[0] / MASS)
+
+            dw[4] = (-2 * NU * w[3]) + (u[1] / MASS)
+            dw[5] = INERTIA_INV * u[2]
             return dw
 
         def step(self, ts=STEP):
@@ -263,7 +455,10 @@ class Satellite_SE2(gym.Env):
 
         def reset(self, state=np.zeros((6,), dtype=np.float32)):
             self.set_state(state)
-            self.set_control()
+            if self.underactuated is True:
+                self.set_control(np.zeros((2,), dtype=np.float32))
+            else:
+                self.set_control(np.zeros((3,), dtype=np.float32))
             return self.state
 
         def render(self):
@@ -310,7 +505,7 @@ def _test():
 
 
 def _test2(underactuated=True):
-    env = Satellite_SE2(underactuated=underactuated)
+    env = Satellite_SE2(underactuated=underactuated, render_mode="graph")
     observation, info = env.reset()
     observations = [observation]
     rewards = []
@@ -318,6 +513,7 @@ def _test2(underactuated=True):
     for _ in range(1000):
         actions.append(env.action_space.sample())
         observation, reward, term, trunc, info = env.step(actions[-1])
+        render = env.render()
         observations.append(observation)
         rewards.append(reward)
     env.close()
@@ -334,14 +530,30 @@ def _test2(underactuated=True):
 def _test3(underactuated=True):
     from stable_baselines3 import PPO
 
-    model = PPO("MlpPolicy", "Satellite_SE2-v0").learn(100000)
+    register(
+        id="Satellite_SE2-v0",
+        entry_point="Satellite_SE2:Satellite_SE2",
+        max_episode_steps=100000,
+        reward_threshold=0.0,
+    )
 
-    env = gym.make("Satellite_SE2-v0", underactuated=underactuated)
+    model = PPO.load("Satellite_SE2")
+    env = gym.make(
+        "Satellite_SE2-v0", underactuated=underactuated, render_mode=None
+    )
+    model.set_env(env=env)
+    model.learn(total_timesteps=100000)
+
+    model.save("Satellite_SE2")
+
+    env = gym.make(
+        "Satellite_SE2-v0", underactuated=underactuated, render_mode="graph"
+    )
     observation, info = env.reset()
     observations = [observation]
     rewards = []
     actions = []
-    for i in range(1000):
+    for i in range(10000):
         action, _states = model.predict(observation, deterministic=True)
         observation, reward, trun, term, info = env.step(action)
         observations.append(observation)
@@ -356,13 +568,96 @@ def _test3(underactuated=True):
     plt.show()
 
 
+def _test4():
+    # check just the dynamics
+    starting_state = np.zeros((8,))
+    starting_state[1] = 30
+    env = Satellite_SE2(
+        render_mode=None,
+        starting_noise=np.zeros((8,)),
+        starting_state=starting_state,
+    )
+    observation, info = env.reset()
+    observations = [observation]
+    rewards = []
+    action = np.array([0, 0], dtype=np.float32)
+    for _ in range(100000):
+        observation, reward, term, trunc, info = env.step(action)
+        render = env.render()
+        observations.append(observation)
+        rewards.append(reward)
+    env.close()
+    observations = np.array(observations)
+    print(observations.shape)
+    print(observations[:, 0])
+    plt.plot(observations[:, 0], observations[:, 1])
+    plt.show()
+
+
+def _test5():
+    import control as ct
+
+    k = np.array(
+        [
+            [
+                0.000212278114670,
+                -0.000083701859629,
+                0.000000000000000,
+                0.098840940992828,
+                0.018561185733915,
+                0.000000000000000,
+            ],
+            [
+                0.000133845264885,
+                0.000054717444153,
+                0.000000000000000,
+                0.018561185733917,
+                0.074573364422630,
+                0.000000000000000,
+            ],
+            [
+                0.000000000000000,
+                0.000000000000000,
+                0.000100000000000,
+                -0.000000000000000,
+                0.000000000000000,
+                0.015818032751518,
+            ],
+        ],
+        dtype=np.float32,
+    )
+
+    # check just the dynamicsstarting_state = np.zeros((8,))
+    starting_state = np.zeros((8,))
+    starting_state[1] = 30
+
+    env = Satellite_SE2(
+        underactuated=False,
+        render_mode="human",
+        starting_state=starting_state,
+        starting_noise=np.zeros((8,)),
+    )
+    observation, info = env.reset()
+    observations = [observation]
+    rewards = []
+    action = np.array([0, 0, 0], dtype=np.float32)
+    env.action_space.sample()
+    print(env.action_space.sample())
+
+    for _ in range(100000):
+        observation, reward, term, trunc, info = env.step(
+            -k @ env.chaser.get_state()
+        )
+        observations.append(observation)
+        rewards.append(reward)
+    env.close()
+    observations = np.array(observations)
+    print(observations.shape)
+    plt.plot(observations[:, 0], observations[:, 1])
+    plt.show()
+
+
 if __name__ == "__main__":
     from gymnasium.envs.registration import register
 
-    register(
-        id="Satellite_SE2-v0",
-        entry_point="Satellite_SE2:Satellite_SE2",
-        max_episode_steps=50000,
-        reward_threshold=0.0,
-    )
-    _test()
+    _test5()

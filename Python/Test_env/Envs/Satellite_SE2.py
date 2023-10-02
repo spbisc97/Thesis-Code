@@ -34,6 +34,8 @@ STARTING_STATE = np.array([0, 1000, 0, 0, 0, 0, 0, 0], dtype=np.float32)
 
 STARTING_NOISE = np.array([10, 10, np.pi / 2, 1e-5, 1e-5, 1e-4, 0, 0])
 
+EULER_SPEEDUP = True
+
 
 class Satellite_SE2(gym.Env):
     """
@@ -62,7 +64,10 @@ class Satellite_SE2(gym.Env):
     and the squared magnitude of the thrust vector.
     """
 
-    metadata = {"render_modes": ["human", "graph", "rgb_array", None]}
+    metadata = {
+        "render_modes": ["human", "graph", "rgb_array", None],
+        "render_fps": 1000,
+    }
 
     def __init__(
         self,
@@ -135,9 +140,8 @@ class Satellite_SE2(gym.Env):
     def step(
         self, action: np.ndarray
     ) -> tuple[Any, float, bool, bool, dict[str, Any]]:
-        assert self.action_space.contains(
-            action
-        ), f"{action!r} ({type(action)}) invalid"
+        if not self.action_space.contains(action):
+            raise f"{action!r} ({type(action)}) invalid"
         self.chaser.set_control(self.__action_filter(action))
         self.chaser.step()
         self.time_step += 1  # Increment the time_step at each step.
@@ -151,7 +155,7 @@ class Satellite_SE2(gym.Env):
 
         return observation, reward, terminated, truncated, info
 
-    def render(self):
+    def render(self, observationlist: np.ndarray = None):
         """Render the environment."""
         if self.render_mode == "human":
             if self.fig is None or self.ax is None:
@@ -163,63 +167,8 @@ class Satellite_SE2(gym.Env):
 
             if self.time_step % 100 != 0:
                 return
-            # Clear the axis for new drawings
-            self.ax.clear()
 
-            # Draw the target (stationary at the center)
-            self.ax.scatter(0, 0, color="red", s=100, label="Target")
-
-            # Draw the target orientation
-            theta = self.target.get_state()
-            length = 5.0
-            end_x = length * np.cos(theta[0])
-            end_y = length * np.sin(theta[0])
-            self.ax.plot(
-                [0, end_x],
-                [0, end_y],
-                color="red",
-            )
-
-            # Draw the chaser satellite
-            chaser_state = self.chaser.get_state()
-            self.ax.scatter(
-                chaser_state[0],
-                chaser_state[1],
-                color="blue",
-                s=50,
-                label="Chaser",
-            )
-
-            # Draw velocity vector of chaser
-            self.ax.arrow(
-                chaser_state[0],
-                chaser_state[1],
-                chaser_state[3],
-                chaser_state[4],
-                color="blue",
-                head_width=1.5,
-                head_length=2.0,
-            )
-
-            # Draw orientation of chaser as a short line
-            length = 5.0
-            end_x = chaser_state[0] + length * np.cos(chaser_state[2])
-            end_y = chaser_state[1] + length * np.sin(chaser_state[2])
-            self.ax.plot(
-                [chaser_state[0], end_x],
-                [chaser_state[1], end_y],
-                color="green",
-            )
-
-            # Legend, grid, and title
-            self.ax.legend()
-            self.ax.grid(True)
-            self.ax.set_xlim(-self.xylim, self.xylim)
-            self.ax.set_ylim(-self.xylim, self.xylim)
-            self.ax.set_title("Satellite SE2 Environment")
-
-            # Display timestamp relative to the plot time
-            self.fig.suptitle(f"Time: {self.time_step*STEP} s", fontsize=12)
+            self.__draw_satellite()
 
             # Display the plot
             plt.pause(0.00001)  # Pause to show frame
@@ -281,7 +230,81 @@ class Satellite_SE2(gym.Env):
 
             plt.pause(0.00001)  # Pause to show frame
 
+        if self.render_mode == "rgb_array":
+            if self.fig is None or self.ax is None:
+                self.fig, self.ax = plt.subplots()
+                self.ax.set_xlim(-self.xylim, self.xylim)
+                self.ax.set_ylim(-self.xylim, self.xylim)
+                self.ax.set_title("Satellite SE2 Environment")
+
+            self.__draw_satellite()
+            self.fig.canvas.draw()
+            img = np.array(
+                self.fig.canvas.renderer.buffer_rgba()
+            )  # Get the RGBA buffer
+            data = img[:, :, :3]  # Drop the alpha channel to get RGB
+
+            return data
         return
+
+    def __draw_satellite(self):
+        # Clear the axis for new drawings
+        self.ax.clear()
+
+        # Draw the target (stationary at the center)
+        self.ax.scatter(0, 0, color="red", s=100, label="Target")
+
+        # Draw the target orientation
+        theta = self.target.get_state()
+        length = 5.0
+        end_x = length * np.cos(theta[0])
+        end_y = length * np.sin(theta[0])
+        self.ax.plot(
+            [0, end_x],
+            [0, end_y],
+            color="red",
+        )
+
+        # Draw the chaser satellite
+        chaser_state = self.chaser.get_state()
+        self.ax.scatter(
+            chaser_state[0],
+            chaser_state[1],
+            color="blue",
+            s=50,
+            label="Chaser",
+        )
+
+        # Draw velocity vector of chaser
+        self.ax.arrow(
+            chaser_state[0],
+            chaser_state[1],
+            chaser_state[3],
+            chaser_state[4],
+            color="blue",
+            head_width=1.5,
+            head_length=2.0,
+        )
+
+        # Draw orientation of chaser as a short line
+        length = 5.0
+        end_x = chaser_state[0] + length * np.cos(chaser_state[2])
+        end_y = chaser_state[1] + length * np.sin(chaser_state[2])
+        self.ax.plot(
+            [chaser_state[0], end_x],
+            [chaser_state[1], end_y],
+            color="green",
+        )
+
+        # Legend, grid, and title
+        self.ax.legend()
+        self.ax.grid(True)
+        self.ax.set_xlim(-self.xylim, self.xylim)
+        self.ax.set_ylim(-self.xylim, self.xylim)
+        self.ax.set_title("Satellite SE2 Environment")
+
+        # Display timestamp relative to the plot time
+        self.fig.suptitle(f"Time: {self.time_step*STEP:.2f} s", fontsize=12)
 
     def close(self) -> None:
         super().close()
@@ -446,11 +469,17 @@ class Satellite_SE2(gym.Env):
             w = self.get_state()
             u = self.get_control()
             k1 = self.__sat_dyn(t, w, u)
-            # self.set_state(w + ts * (k1 ))
+            self.set_state(w + ts * (k1))
+
+            if EULER_SPEEDUP:
+                return self.state
+
             k2 = self.__sat_dyn(t + 0.5 * ts, w + 0.5 * ts * k1, u)
             k3 = self.__sat_dyn(t + 0.5 * ts, w + 0.5 * ts * k2, u)
             k4 = self.__sat_dyn(t + ts, w + ts * k3, u)
             self.set_state(w + ts * (k1 + 2 * k2 + 2 * k3 + k4) / 6)
+            # Maybe np Vectorized calculation of k1, k2, k3, and k4
+            # could speedup the code
             return self.state
 
         def reset(self, state=np.zeros((6,), dtype=np.float32)):
@@ -581,9 +610,8 @@ def _test4():
     observations = [observation]
     rewards = []
     action = np.array([0, 0], dtype=np.float32)
-    for _ in range(100000):
+    for _ in range(1000000):
         observation, reward, term, trunc, info = env.step(action)
-        render = env.render()
         observations.append(observation)
         rewards.append(reward)
     env.close()
@@ -592,10 +620,12 @@ def _test4():
     print(observations[:, 0])
     plt.plot(observations[:, 0], observations[:, 1])
     plt.show()
+    plt.plot(rewards)
+    plt.show()
 
 
 def _test5():
-    import control as ct
+    from gymnasium.experimental.wrappers import HumanRenderingV0, RecordVideoV0
 
     k = np.array(
         [
@@ -633,7 +663,71 @@ def _test5():
 
     env = Satellite_SE2(
         underactuated=False,
-        render_mode="human",
+        render_mode="rgb_array",
+        max_action=1,  # set to 1 for nomal control
+        starting_state=starting_state,
+        starting_noise=np.zeros((8,)),
+    )
+    # env = HumanRenderingV0(env)
+    env = RecordVideoV0(env, video_folder=".", video_length=0)
+    observation, info = env.reset()
+    observations = [observation]
+    rewards = []
+    action = np.array([0, 0, 0], dtype=np.float32)
+    env.action_space.sample()
+    print(env.action_space.sample())
+
+    for _ in range(1000):
+        action = -k @ env.chaser.get_state()
+
+        if np.linalg.norm(action) > 1:
+            action = action / np.norm(action)
+        observation, reward, term, trunc, info = env.step(action)
+        observations.append(observation)
+        rewards.append(reward)
+    env.close()
+    observations = np.array(observations)
+    print(observations.shape)
+    plt.plot(observations[:, 0], observations[:, 1])
+    plt.show()
+
+
+def _test6():
+    k = np.array(
+        [
+            [
+                0.000212278114670,
+                -0.000083701859629,
+                0.000000000000000,
+                0.098840940992828,
+                0.018561185733915,
+                0.000000000000000,
+            ],
+            [
+                0.000133845264885,
+                0.000054717444153,
+                0.000000000000000,
+                0.018561185733917,
+                0.074573364422630,
+                0.000000000000000,
+            ],
+            [
+                0.000000000000000,
+                0.000000000000000,
+                0.000100000000000,
+                -0.000000000000000,
+                0.000000000000000,
+                0.015818032751518,
+            ],
+        ],
+        dtype=np.float32,
+    )
+    starting_state = np.zeros((8,))
+    starting_state[1] = 30
+    env = Satellite_SE2(
+        underactuated=False,
+        render_mode=None,
+        max_action=1,  # set to 1 for nomal control
         starting_state=starting_state,
         starting_noise=np.zeros((8,)),
     )
@@ -643,18 +737,22 @@ def _test5():
     action = np.array([0, 0, 0], dtype=np.float32)
     env.action_space.sample()
     print(env.action_space.sample())
-
-    for _ in range(100000):
-        observation, reward, term, trunc, info = env.step(
-            -k @ env.chaser.get_state()
-        )
+    for _ in range(10000):
+        action = -k @ env.chaser.get_state()
+        if np.linalg.norm(action) > 1:
+            action = action / np.norm(action)
+        observation, reward, term, trunc, info = env.step(action)
         observations.append(observation)
         rewards.append(reward)
     env.close()
-    observations = np.array(observations)
-    print(observations.shape)
-    plt.plot(observations[:, 0], observations[:, 1])
-    plt.show()
+
+
+def _scalene_profiler():
+    from scalene import scalene_profiler
+
+    scalene_profiler.start()
+    _test6()
+    scalene_profiler.stop()
 
 
 if __name__ == "__main__":

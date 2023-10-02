@@ -107,7 +107,6 @@ class Satellite_SE2(gym.Env):
         self.chaser = self.Chaser(underactuated=underactuated)
         self.target = self.Target()
         self.reset()
-        self.xylim = self.chaser.radius() * 1.25
 
         return
 
@@ -129,11 +128,12 @@ class Satellite_SE2(gym.Env):
         )
 
         self.chaser.reset(chaser_stable_random)
-        for _ in range(np.random.randint(10, 500)):
-            self.chaser.step()
+        for _ in range(np.random.randint(10, 1000)):
+            self.chaser.step(0.5)  # roughly integration to move the object
 
         self.target.reset(random_state[6:8])
         observation = self.__get_observation()
+        self.xylim = self.chaser.radius() * 2
         info = {}
         return observation, info
 
@@ -250,6 +250,7 @@ class Satellite_SE2(gym.Env):
     def __draw_satellite(self):
         # Clear the axis for new drawings
         self.ax.clear()
+        scale = self.xylim / 2
 
         # Draw the target (stationary at the center)
         self.ax.scatter(0, 0, color="red", s=100, label="Target")
@@ -257,8 +258,8 @@ class Satellite_SE2(gym.Env):
         # Draw the target orientation
         theta = self.target.get_state()
         length = 5.0
-        end_x = length * np.cos(theta[0])
-        end_y = length * np.sin(theta[0])
+        end_x = length * np.sin(theta[0])
+        end_y = length * np.cos(theta[0])
         self.ax.plot(
             [0, end_x],
             [0, end_y],
@@ -276,24 +277,40 @@ class Satellite_SE2(gym.Env):
         )
 
         # Draw velocity vector of chaser
-        self.ax.arrow(
-            chaser_state[0],
-            chaser_state[1],
-            chaser_state[3],
-            chaser_state[4],
-            color="blue",
-            head_width=1.5,
-            head_length=2.0,
-        )
-
-        # Draw orientation of chaser as a short line
-        length = 5.0
-        end_x = chaser_state[0] + length * np.cos(chaser_state[2])
-        end_y = chaser_state[1] + length * np.sin(chaser_state[2])
+        end_x = chaser_state[0] + chaser_state[3] * 1e3
+        end_y = chaser_state[1] + chaser_state[4] * 1e3
         self.ax.plot(
             [chaser_state[0], end_x],
             [chaser_state[1], end_y],
             color="green",
+        )
+
+        # Draw orientation of chaser as a short line
+        length = 5.0
+        self.ax.arrow(
+            chaser_state[0],
+            chaser_state[1],
+            np.sin(chaser_state[2]),
+            np.cos(chaser_state[2]),
+            color="blue",
+            head_width=1,
+            head_length=2,
+        )
+
+        # Draw the chaser fore vector
+        chaser_control = self.chaser.get_control() * 2e2 * scale
+        if self.underactuated:
+            length = chaser_control[0]
+            end_x = chaser_state[0] + length * np.sin(chaser_state[2])
+            end_y = chaser_state[1] + length * np.cos(chaser_state[2])
+        else:
+            length = np.linalg.norm(chaser_control[0:2])
+            end_x = chaser_state[0] + chaser_control[0]
+            end_y = chaser_state[1] + chaser_control[1]
+        self.ax.plot(
+            [chaser_state[0], end_x],
+            [chaser_state[1], end_y],
+            color="red",
         )
 
         # Legend, grid, and title
@@ -494,10 +511,10 @@ class Satellite_SE2(gym.Env):
             pass
 
         def radius(self):
-            return np.sqrt(self.state[0] ** 2 + self.state[1] ** 2)
+            return np.linalg.norm(self.state[0:2])
 
         def speed(self):
-            return np.sqrt(self.state[3] ** 2 + self.state[4] ** 2)
+            return np.linalg.norm(self.state[3:5])
 
     class Target:
         # add dynamics later
@@ -534,12 +551,18 @@ def _test():
 
 
 def _test2(underactuated=True):
-    env = Satellite_SE2(underactuated=underactuated, render_mode="graph")
+    env = Satellite_SE2(
+        underactuated=underactuated,
+        render_mode="human",
+        starting_state=np.array([0, 10, 0, 0, 0, 0, 0, 0], dtype=np.float32),
+        starting_noise=np.zeros((8,)),
+    )
     observation, info = env.reset()
     observations = [observation]
     rewards = []
     actions = []
-    for _ in range(1000):
+    print(env.action_space.sample())
+    for _ in range(10000):
         actions.append(env.action_space.sample())
         observation, reward, term, trunc, info = env.step(actions[-1])
         render = env.render()
@@ -566,17 +589,18 @@ def _test3(underactuated=True):
         reward_threshold=0.0,
     )
 
-    model = PPO.load("Satellite_SE2")
+    # model = PPO.load("Satellite_SE2")
+    model = PPO("MlpPolicy", "Satellite_SE2-v0", verbose=1)
     env = gym.make(
         "Satellite_SE2-v0", underactuated=underactuated, render_mode=None
     )
-    model.set_env(env=env)
-    model.learn(total_timesteps=100000)
+    model = PPO("MlpPolicy", env=env)
+    model.learn(total_timesteps=1000)
 
     model.save("Satellite_SE2")
 
     env = gym.make(
-        "Satellite_SE2-v0", underactuated=underactuated, render_mode="graph"
+        "Satellite_SE2-v0", underactuated=underactuated, render_mode="human"
     )
     observation, info = env.reset()
     observations = [observation]
@@ -677,7 +701,7 @@ def _test5():
     env.action_space.sample()
     print(env.action_space.sample())
 
-    for _ in range(1000):
+    for _ in range(100000):
         action = -k @ env.chaser.get_state()
 
         if np.linalg.norm(action) > 1:

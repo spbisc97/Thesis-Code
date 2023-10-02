@@ -447,11 +447,17 @@ class Satellite_SE2(gym.Env):
             return self.control
 
         def __sat_dyn_underactuated(
-            self, t: SupportsFloat, w: np.ndarray, u: np.ndarray
+            self,
+            t: SupportsFloat,
+            w: np.ndarray,
+            u: np.ndarray,
         ):
             # u = [fx, tau]
-            dw = np.zeros((6,), dtype=np.float32)
 
+            dw = np.zeros((6,), dtype=np.float32)
+            #  if symbolic:
+            #    dw = [t, t, t, t, t, t]
+            # else:
             dw[0] = w[3]
             dw[1] = w[4]
             dw[2] = w[5]
@@ -467,10 +473,16 @@ class Satellite_SE2(gym.Env):
             return dw
 
         def __sat_dyn_fullyactuated(
-            self, t: SupportsFloat, w: np.ndarray, u: np.ndarray
+            self,
+            t: SupportsFloat,
+            w: np.ndarray,
+            u: np.ndarray,
         ):
             # u = [fx, fu, tau]
+
             dw = np.zeros((6,), dtype=np.float32)
+            # if symbolic:
+            #     dw = [t, t, t, t, t, t]
 
             dw[0] = w[3]
             dw[1] = w[4]
@@ -482,7 +494,7 @@ class Satellite_SE2(gym.Env):
             return dw
 
         def step(self, ts=STEP):
-            t = 0
+            t = np.zeros((1,), dtype=np.float32)
             w = self.get_state()
             u = self.get_control()
             k1 = self.__sat_dyn(t, w, u)
@@ -515,6 +527,9 @@ class Satellite_SE2(gym.Env):
 
         def speed(self):
             return np.linalg.norm(self.state[3:5])
+
+        def symbolic_dynamics(self):
+            pass
 
     class Target:
         # add dynamics later

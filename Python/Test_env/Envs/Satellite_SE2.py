@@ -145,13 +145,13 @@ class Satellite_SE2(gym.Env):
         self.chaser.set_control(self.__action_filter(action))
         self.chaser.step()
         self.time_step += 1  # Increment the time_step at each step.
-        terminated = self.__termination()
+        terminated = False  # self.__termination()
         truncated = False
         reward = self.__reward()
         observation = self.__get_observation()
         info = {}
-
-        self.render()  # Update the rendering after every action
+        if self.render_mode in ["human", "graph"]:
+            self.render()  # Update the rendering after every action
 
         return observation, reward, terminated, truncated, info
 
@@ -595,39 +595,60 @@ def _test2(underactuated=True):
 
 
 def _test3(underactuated=True):
-    from stable_baselines3 import PPO
+    from stable_baselines3 import DDPG, PPO
+    from moviepy.editor import ImageSequenceClip
 
     register(
         id="Satellite_SE2-v0",
         entry_point="Satellite_SE2:Satellite_SE2",
-        max_episode_steps=100000,
+        max_episode_steps=200000,
         reward_threshold=0.0,
     )
 
-    # model = PPO.load("Satellite_SE2")
-    model = PPO("MlpPolicy", "Satellite_SE2-v0", verbose=1)
+    starting_state = np.array([0, 10, 0, 0, 0, 0, 0, 0], dtype=np.float32)
+    starting_noise = np.zeros((8,))
+    model = PPO.load("Satellite_SE2")
     env = gym.make(
-        "Satellite_SE2-v0", underactuated=underactuated, render_mode=None
+        "Satellite_SE2-v0",
+        underactuated=underactuated,
+        starting_state=starting_state,
+        starting_noise=starting_noise,
     )
-    model = PPO("MlpPolicy", env=env)
-    model.learn(total_timesteps=1000)
+    model.set_env(env)
+    # model = PPO("MlpPolicy", env=env, verbose=1)
+    for _ in range(4):
+        model.learn(total_timesteps=200000)
+        model.save("Satellite_SE2")
 
-    model.save("Satellite_SE2")
-
-    env = gym.make(
-        "Satellite_SE2-v0", underactuated=underactuated, render_mode="human"
-    )
     observation, info = env.reset()
     observations = [observation]
     rewards = []
     actions = []
-    for i in range(10000):
+
+    env.reset()
+
+    env = gym.make(
+        "Satellite_SE2-v0",
+        underactuated=underactuated,
+        starting_state=starting_state,
+        starting_noise=starting_noise,
+        render_mode="rgb_array",
+    )
+    env.reset()
+    frames = [env.render()]
+    for _ in range(100000):
         action, _states = model.predict(observation, deterministic=True)
         observation, reward, trun, term, info = env.step(action)
+        if _ % 50 == 0:
+            frames.append(env.render())
         observations.append(observation)
         rewards.append(reward)
         actions.append(action)
     env.close()
+    clip = ImageSequenceClip(frames, fps=100)
+    save_path = "./video.mp4"
+    clip.write_videofile(save_path, fps=100)
+
     plt.plot(observations)
     plt.show()
     plt.plot(actions)
@@ -665,6 +686,7 @@ def _test4():
 
 def _test5():
     from gymnasium.experimental.wrappers import HumanRenderingV0, RecordVideoV0
+    from moviepy.editor import ImageSequenceClip
 
     k = np.array(
         [
@@ -708,9 +730,10 @@ def _test5():
         starting_noise=np.zeros((8,)),
     )
     # env = HumanRenderingV0(env)
-    env = RecordVideoV0(env, video_folder=".", video_length=0)
+    # env = RecordVideoV0(env, video_folder=".", video_length=0)
     observation, info = env.reset()
     observations = [observation]
+    frames = []
     rewards = []
     action = np.array([0, 0, 0], dtype=np.float32)
     env.action_space.sample()
@@ -722,9 +745,17 @@ def _test5():
         if np.linalg.norm(action) > 1:
             action = action / np.norm(action)
         observation, reward, term, trunc, info = env.step(action)
+        if _ % 50 == 0:
+            frames.append(env.render())
         observations.append(observation)
         rewards.append(reward)
+
+    clip = ImageSequenceClip(frames, fps=100)
+    save_path = "./video.mp4"
+    clip.write_videofile(save_path, fps=100)
+
     env.close()
+
     observations = np.array(observations)
     print(observations.shape)
     plt.plot(observations[:, 0], observations[:, 1])
@@ -797,4 +828,4 @@ def _scalene_profiler():
 if __name__ == "__main__":
     from gymnasium.envs.registration import register
 
-    _test5()
+    _test3()

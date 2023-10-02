@@ -209,7 +209,7 @@ if test==4
     C=eye(n);
     D=zeros(n,m);
     Q=eye(6);
-    R=eye(3);
+    R=eye(3)*1e8;
     N=100;
 
     k=lqr(A,B,Q,R);

@@ -8,7 +8,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
 import Envs
-from Envs.Satellite_mujoco import MujSatEnv
+from Python.SafeGym.safegym.envs import MujSatEnv
 import gymnasium as gym
 from gymnasium.experimental.wrappers import RecordVideoV0
 import numpy as np

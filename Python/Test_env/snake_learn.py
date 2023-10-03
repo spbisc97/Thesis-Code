@@ -21,7 +21,7 @@ cv2.destroyAllWindows()
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
-from Envs.Snake_v0 import SnakeEnv
+from Python.SafeGym.safegym.envs import SnakeEnv
 import gymnasium as gym
 import numpy as np
 import os

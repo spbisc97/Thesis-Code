@@ -11,7 +11,7 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import VecMonitor
 from stable_baselines3.common.vec_env import VecNormalize
 import torch as th
-from Envs.Satellite_tra import Satellite_tra
+from Python.SafeGym.safegym.envs.Satellite_tra import Satellite_tra
 import gymnasium as gym
 import numpy as np
 import os

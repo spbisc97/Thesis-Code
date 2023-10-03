@@ -3,17 +3,16 @@ import matplotlib as mpl
 mpl.use("TkAgg")
 import matplotlib.pyplot as plt
 
-
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
-from Envs.Satellite_rot import Satellite_rot
+from Python.SafeGym.safegym.envs.Satellite_rot import Satellite_rot
 import gymnasium as gym
-import numpy as np
 import os
 
 # import send2trash
 import time
+
 
 # import ffmpegio
 
@@ -62,7 +61,7 @@ fill_reward_file(imgs_dir)
 
 
 def run_episode(
-    model, env_name, model_name="PPO", model_num=0, model_timesteps=0, args=()
+        model, env_name, model_name="PPO", model_num=0, model_timesteps=0, args=()
 ):
     term = False
     env = gym.make(env_name, render_mode="rgb_array")

@@ -9,7 +9,7 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.noise import NormalActionNoise
 from stable_baselines3.common.monitor import Monitor
-from Envs.Satellite_tra import Satellite_tra
+from Python.SafeGym.safegym.envs import Satellite_tra
 import gymnasium as gym
 import numpy as np
 import os
@@ -80,7 +80,8 @@ def run_episode(
         if term or trunc:
             X = env.render()
             plt.imsave(
-                f"{imgs_dir}/{model_name}_{model_num}_{model_timesteps:.1e}.png", X
+                f"{imgs_dir}/{model_name}_{model_num}_{model_timesteps:.1e}.png",
+                X,
             )
             break
     env.close()
@@ -102,7 +103,9 @@ env = create_env()
 # env = DummyVecEnv([create_env for _ in range(n_envs)])
 
 test_env = gym.make(env_name)
-test_env = gym.wrappers.TimeLimit(test_env, max_episode_steps=MAX_EPISODE_STEPS)
+test_env = gym.wrappers.TimeLimit(
+    test_env, max_episode_steps=MAX_EPISODE_STEPS
+)
 
 
 n_actions = 3

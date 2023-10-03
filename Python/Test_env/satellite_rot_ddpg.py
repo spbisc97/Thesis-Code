@@ -9,13 +9,14 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.noise import NormalActionNoise
-from Envs.Satellite_rot import Satellite_rot
+from Python.SafeGym.safegym.envs.Satellite_rot import Satellite_rot
 import gymnasium as gym
 import numpy as np
 import os
 
 # import send2trash
 import time
+
 
 # import ffmpegio
 
@@ -74,7 +75,8 @@ def run_episode(
         if term or trunc:
             X = env.render()
             plt.imsave(
-                f"{imgs_dir}/{model_name}_{model_num}_{model_timesteps:.1e}.png", X
+                f"{imgs_dir}/{model_name}_{model_num}_{model_timesteps:.1e}.png",
+                X,
             )
             term = False
             break

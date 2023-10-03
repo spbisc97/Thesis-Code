@@ -1,9 +1,9 @@
 from gymnasium.envs.registration import register
 
-from Envs.Snake_v0 import SnakeEnv
-from Envs.Satellite_rot import Satellite_rot
-from Envs.Satellite_tra import Satellite_tra
-from Envs.Satellite_mujoco import MujSatEnv
+from envs.Snake_v0 import SnakeEnv
+from envs.Satellite_rot import Satellite_rot
+from envs.Satellite_tra import Satellite_tra
+from envs.Satellite_mujoco import MujSatEnv
 
 __al__ = ["SnakeEnv", "Satellite_rot", "Satellite_tra", "MujSatEnv"]
 

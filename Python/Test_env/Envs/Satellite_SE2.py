@@ -362,9 +362,12 @@ class Satellite_SE2(gym.Env):
         reward = 0.5
         ch_radius = self.chaser.radius()
         ch_control = self.chaser.get_control()
+        ch_speed = self.chaser.speed()
 
-        reward += (-np.log10(ch_radius + 1e-3)) - (
-            ch_control[0] ** 2 + ch_control[1] ** 2
+        reward += (
+            (-np.log10(ch_radius + 1e-3))
+            - (ch_control[0] ** 2 + ch_control[1] ** 2)
+            + (-np.log10(ch_speed + 1e-3))
         )
         return reward
 

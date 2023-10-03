@@ -1,3 +1,6 @@
 [submodule "Python/Test_env/savings"]
 	path = Python/Test_env/savings
 	url = git@github.com:spbisc97/TH_Model_Savings.git
+[submodule "Python/SafeGym"]
+	path = Python/SafeGym
+	url = git@github.com:spbisc97/SafeGym.git

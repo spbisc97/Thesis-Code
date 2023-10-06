@@ -18,6 +18,7 @@
     "black-formatter.args": [
         "-l 79",
         "--preview"
-    ]
+    ],
+    "python.analysis.typeCheckingMode": "basic"
 
 }

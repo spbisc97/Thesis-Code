@@ -26,12 +26,10 @@ if isempty(Controller)
     
     constraints = [];
     objective = 0;
-    nlconst=@(vararg) cos(vararg(1))*vararg(2)-sin(vararg(1))*vararg(3);
     for k = 1:N
         objective = objective + (r-C*x{k})'*Q*(r-C*x{k})+u{k}'*R*u{k};
         constraints = [constraints, x{k+1} == Ad*x{k}+Bd*u{k}];
         %constraints = [constraints, -1e-2 <= u{k}<= 1e-2];
-        %constraints = [constraints,  0.1<=cos(x{k}(3))*u{k}(1)-sin(x{k}(3))*u{k}(2)<=0.1];
         %objective=objective+1e100*blackbox([x{k}(3);u{k}(1);u{k}(2)],nlconst);
         %constraints=[constraints,0.1<=blackbox([x{k}(3),u{k}(1),u{k}(2)],nlconst)<=0.1]
     end

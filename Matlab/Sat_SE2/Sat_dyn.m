@@ -50,7 +50,7 @@ end
 
     %Takes u directly as acc
     %u=min(p.Tmax,max(-p.Tmax,u))*min(1,max(0,y(7)*1e2));
-    torques=[sin(phi); cos(phi);0]*u(1)+[0;0;1]*u(2);
+    torques=[cos(phi); sin(phi);0]*u(1)+[0;0;1]*u(2);
 
 
 

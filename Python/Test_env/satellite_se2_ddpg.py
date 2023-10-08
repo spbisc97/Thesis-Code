@@ -1,10 +1,13 @@
-from stable_baselines3 import PPO
+from stable_baselines3 import DDPG
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
 
 
-from stable_baselines3.common.noise import NormalActionNoise
+from stable_baselines3.common.noise import (
+    NormalActionNoise,
+    OrnsteinUhlenbeckActionNoise,
+)
 from safegym.envs import Satellite_SE2
 import gymnasium as gym
 from gymnasium.wrappers import TimeLimit
@@ -30,8 +33,8 @@ os.chdir(file_path)
 env_name = "Satellite-SE2-v0"
 # env = gym.make(env_name)
 
-Algo = PPO
-Algo_name = "PPO"
+Algo = DDPG
+Algo_name = "DDPG"
 # ENT = 0.01
 use_last_model = False
 
@@ -62,15 +65,9 @@ starting_noise = np.array([0, 0, 0, 0, 0, 0, 0, 0])
 
 
 def run_episode(
-    model, env_name, model_name="PPO", model_num=0, model_timesteps=0, args=()
+    model, env, model_name="DDPG", model_num=0, model_timesteps=0, **kargs
 ):
     term = False
-    env = gym.make(
-        env_name,
-        render_mode="rgb_array_graph",
-        starting_state=starting_state,
-        starting_noise=starting_noise,
-    )
     obs, info = env.reset()
     while not term:
         action, _states = model.predict(obs, deterministic=True)
@@ -86,13 +83,38 @@ def run_episode(
     env.close()
 
 
-env = gym.make(
-    env_name,
-    starting_state=starting_state,
-    starting_noise=starting_noise,
-)
-env = TimeLimit(env, max_episode_steps=20_000)
-env = Monitor(env)
+n_actions = 2
+
+params = {
+    "mean": np.zeros(n_actions),
+    "sigma": 0.1 * np.ones(n_actions),
+    "dtype": np.float32,
+}
+O_params = {
+    "theta": 0.05,
+    "dt": 1e-2,
+    "initial_noise": None,
+}
+action_noise = OrnsteinUhlenbeckActionNoise(**params, **O_params)
+# action_noise = NormalActionNoise(**params)
+
+
+def env_maker(render_mode=None):
+    env = gym.make(
+        env_name,
+        starting_state=starting_state,
+        starting_noise=starting_noise,
+        render_mode=render_mode,
+        step=0.1,
+    )
+
+    env = TimeLimit(env, max_episode_steps=8_000)
+    env = Monitor(env)
+
+    return env
+
+
+env = make_vec_env(env_maker, n_envs=4)
 
 # env = gym.make(env_name)
 # add action noise for exploration
@@ -101,41 +123,52 @@ env = Monitor(env)
 # action_noise = NormalActionNoise(
 #     mean=np.zeros(n_actions), sigma=0.5 * np.ones(n_actions)
 # )
+params_episode = {
+    "env": env_maker(render_mode="rgb_array_graph"),
+    "model_name": Algo_name,
+}
 
+params_ddpg = {
+    "policy": "MlpPolicy",
+    "env": env,
+    "verbose": 1,
+    "learning_rate": 0.003,
+    "buffer_size": 1_000_000,
+    "batch_size": 256,
+    "tau": 0.005,
+    "gamma": 0.999,
+    "learning_starts": 1000,
+    "train_freq": (5000, "step"),
+    "gradient_steps": 100,
+    "tensorboard_log": logdir,
+    "action_noise": action_noise,
+}
 
-TIMESTEPS = 400_000
+TIMESTEPS = 100_000
 if last_model > 0:
     model = Algo.load(
         f"{models_dir}/{Algo_name}_{last_model}",
-        env=env,
-        verbose=1,
-        learning_rate=0.0001,
-        gamma=0.99,
-        # ent_coef=ENT,
-        tensorboard_log=logdir,
+        **params_ddpg,
+        _init_setup_model=False,
     )
 else:
     # input("Press Enter to delete logs and models")
     # send2trash.send2trash(f"{logdir}/")
     # send2trash.send2trash(f"{models_dir}/")
     model = Algo(
-        "MlpPolicy",
-        env=env,
-        verbose=1,
-        learning_rate=0.0001,
-        gamma=0.99,
-        # ent_coef=ENT,
-        tensorboard_log=logdir,
+        **params_ddpg,
+        _init_setup_model=True,
     )
-episodes = 30
+episodes = 40
 run_episode(
     model,
-    env_name=env_name,
-    model_name=Algo_name,
+    **params_episode,
     model_num=last_model,
     model_timesteps=model.num_timesteps,
-    args=(),
+    kargs=(),
 )
+
+
 mean_reward, std_reward = evaluate_policy(
     model, env, n_eval_episodes=1, deterministic=True
 )
@@ -156,8 +189,7 @@ for i in range(last_model + 1, last_model + episodes + 1):
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
     run_episode(
         model,
-        env_name=env_name,
-        model_name=Algo_name,
+        **params_episode,
         model_num=last_model,
         model_timesteps=model.num_timesteps,
         args=(),

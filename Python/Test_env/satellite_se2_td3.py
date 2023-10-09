@@ -61,7 +61,7 @@ fill_reward_file(imgs_dir)
 
 Y0 = 5
 starting_state = np.array([0, Y0, 0, Y0 / 2000, 0, 0, 0, 0])
-starting_noise = np.array([0.001, 0.001, 0.1, 1e-8, 1e-8, 0.001, 0, 0])
+starting_noise = np.array([0.2, 0.2, 0.3, 1e-6, 1e-6, 1e-8, 0, 0])
 
 
 def run_episode(
@@ -90,9 +90,11 @@ def env_maker(render_mode=None):
         starting_noise=starting_noise,
         render_mode=render_mode,
         step=0.1,
+        underactuated=False,
+        unconstrained=True,
     )
 
-    env = TimeLimit(env, max_episode_steps=20_000)
+    env = TimeLimit(env, max_episode_steps=30_000)
     env = Monitor(env)
 
     return env
@@ -101,20 +103,22 @@ def env_maker(render_mode=None):
 env = make_vec_env(env_maker, n_envs=2)
 
 # env = gym.make(env_name)
-n_actions = 2
+n_actions = 3
 
 params = {
     "mean": np.zeros(n_actions),
-    "sigma": 0.05 * np.ones(n_actions),
+    "sigma": np.array(
+        [1e-3, 1e-3, 1e-6], dtype=np.float32
+    ),  # np.ones(n_actions
     "dtype": np.float32,
 }
 O_params = {
-    "theta": 0.05,
-    "dt": 1e-2,
+    "theta": 0.2,
+    "dt": 1e-1,
     "initial_noise": None,
 }
-# action_noise = OrnsteinUhlenbeckActionNoise(**params, **O_params)
-action_noise = NormalActionNoise(**params)
+action_noise = OrnsteinUhlenbeckActionNoise(**params, **O_params)
+# action_noise = NormalActionNoise(**params)
 
 params_episode = {
     "env": env_maker(render_mode="rgb_array_graph"),

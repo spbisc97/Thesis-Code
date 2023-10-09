@@ -4,10 +4,13 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
 
 
-from stable_baselines3.common.noise import NormalActionNoise
+from stable_baselines3.common.noise import (
+    NormalActionNoise,
+    OrnsteinUhlenbeckActionNoise,
+)
 from safegym.envs import Satellite_SE2
 import gymnasium as gym
-from gymnasium.wrappers import TimeLimit
+from gymnasium.wrappers.time_limit import TimeLimit
 import numpy as np
 import os
 import numpy as np
@@ -58,19 +61,13 @@ fill_reward_file(imgs_dir)
 
 Y0 = 5
 starting_state = np.array([0, Y0, 0, Y0 / 2000, 0, 0, 0, 0])
-starting_noise = np.array([0, 0, 0, 0, 0, 0, 0, 0])
+starting_noise = np.array([0.001, 0.001, 0.1, 1e-8, 1e-8, 0.001, 0, 0])
 
 
 def run_episode(
-    model, env_name, model_name="PPO", model_num=0, model_timesteps=0, args=()
+    model, env, model_name="PPO", model_num=0, model_timesteps=0, **kargs
 ):
     term = False
-    env = gym.make(
-        env_name,
-        render_mode="rgb_array_graph",
-        starting_state=starting_state,
-        starting_noise=starting_noise,
-    )
     obs, info = env.reset()
     while not term:
         action, _states = model.predict(obs, deterministic=True)
@@ -86,56 +83,67 @@ def run_episode(
     env.close()
 
 
-env = gym.make(
-    env_name,
-    starting_state=starting_state,
-    starting_noise=starting_noise,
-)
-env = TimeLimit(env, max_episode_steps=20_000)
-env = Monitor(env)
+def env_maker(render_mode=None):
+    env = gym.make(
+        env_name,
+        starting_state=starting_state,
+        starting_noise=starting_noise,
+        render_mode=render_mode,
+        step=0.1,
+    )
 
-# env = gym.make(env_name)
-# add action noise for exploration
+    env = TimeLimit(env, max_episode_steps=20_000)
+    env = Monitor(env)
 
-# n_actions = 3
-# action_noise = NormalActionNoise(
-#     mean=np.zeros(n_actions), sigma=0.5 * np.ones(n_actions)
-# )
+    return env
 
 
-TIMESTEPS = 400_000
+env = env_maker()  # make_vec_env(env_maker, n_envs=4)
+
+
+params_episode = {
+    "env": env_maker(render_mode="rgb_array_graph"),
+    "model_name": Algo_name,
+}
+
+params_ddpg = {
+    "policy": "MlpPolicy",
+    "env": env,
+    "verbose": 1,
+    "learning_rate": 0.003,
+    "gamma": 0.999,  # 0.99
+    "batch_size": 128,
+    "n_epochs": 10,
+    "n_steps": 4096,
+    "ent_coef": 0.01,  # 0.0
+    "tensorboard_log": logdir,
+}
+
+TIMESTEPS = 100_000
 if last_model > 0:
     model = Algo.load(
         f"{models_dir}/{Algo_name}_{last_model}",
-        env=env,
-        verbose=1,
-        learning_rate=0.0001,
-        gamma=0.99,
-        # ent_coef=ENT,
-        tensorboard_log=logdir,
+        **params_ddpg,
+        _init_setup_model=False,
     )
 else:
     # input("Press Enter to delete logs and models")
     # send2trash.send2trash(f"{logdir}/")
     # send2trash.send2trash(f"{models_dir}/")
     model = Algo(
-        "MlpPolicy",
-        env=env,
-        verbose=1,
-        learning_rate=0.0001,
-        gamma=0.99,
-        # ent_coef=ENT,
-        tensorboard_log=logdir,
+        **params_ddpg,
+        _init_setup_model=True,
     )
-episodes = 30
+episodes = 40
 run_episode(
     model,
-    env_name=env_name,
-    model_name=Algo_name,
+    **params_episode,
     model_num=last_model,
     model_timesteps=model.num_timesteps,
-    args=(),
+    kargs=(),
 )
+
+
 mean_reward, std_reward = evaluate_policy(
     model, env, n_eval_episodes=1, deterministic=True
 )
@@ -151,14 +159,12 @@ for i in range(last_model + 1, last_model + episodes + 1):
     model.save(f"{models_dir}/{Algo_name}_{i}")
     last_model = i
     mean_reward, std_reward = evaluate_policy(
-        model, env, n_eval_episodes=2, deterministic=True
+        model, env, n_eval_episodes=1, deterministic=True
     )
     print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
     run_episode(
         model,
-        env_name=env_name,
-        model_name=Algo_name,
+        **params_episode,
         model_num=last_model,
         model_timesteps=model.num_timesteps,
-        args=(),
     )

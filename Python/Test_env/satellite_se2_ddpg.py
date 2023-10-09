@@ -108,7 +108,7 @@ def env_maker(render_mode=None):
         step=0.1,
     )
 
-    env = TimeLimit(env, max_episode_steps=8_000)
+    env = TimeLimit(env, max_episode_steps=20_000)
     env = Monitor(env)
 
     return env

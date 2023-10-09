@@ -59,9 +59,9 @@ os.makedirs(imgs_dir, exist_ok=True)
 fill_reward_file(imgs_dir)
 
 
-Y0 = 5
+Y0 = 8
 starting_state = np.array([0, Y0, 0, Y0 / 2000, 0, 0, 0, 0])
-starting_noise = np.array([0.2, 0.2, 0.3, 1e-6, 1e-6, 1e-8, 0, 0])
+starting_noise = np.array([0.3, 0.3, 0.4, 1e-5, 1e-5, 1e-3, 0, 0])
 
 
 def run_episode(
@@ -90,8 +90,6 @@ def env_maker(render_mode=None):
         starting_noise=starting_noise,
         render_mode=render_mode,
         step=0.1,
-        underactuated=False,
-        unconstrained=True,
     )
 
     env = TimeLimit(env, max_episode_steps=30_000)
@@ -103,18 +101,16 @@ def env_maker(render_mode=None):
 env = make_vec_env(env_maker, n_envs=2)
 
 # env = gym.make(env_name)
-n_actions = 3
+n_actions = 2
 
 params = {
     "mean": np.zeros(n_actions),
-    "sigma": np.array(
-        [1e-3, 1e-3, 1e-6], dtype=np.float32
-    ),  # np.ones(n_actions
+    "sigma": np.array([1e-3, 1e-6], dtype=np.float32),  # np.ones(n_actions
     "dtype": np.float32,
 }
 O_params = {
-    "theta": 0.2,
-    "dt": 1e-1,
+    "theta": 0.4,
+    "dt": 1e-2,
     "initial_noise": None,
 }
 action_noise = OrnsteinUhlenbeckActionNoise(**params, **O_params)
@@ -140,6 +136,7 @@ params_algo = {
     "tensorboard_log": logdir,
     "action_noise": action_noise,
     "policy_delay": 50,  # 2,
+    "policy_kwargs": dict(net_arch=[400, 300]),
 }
 
 TIMESTEPS = 200_000

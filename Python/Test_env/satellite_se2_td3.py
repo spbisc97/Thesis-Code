@@ -2,6 +2,7 @@ from stable_baselines3 import TD3
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.callbacks import BaseCallback
 
 
 from stable_baselines3.common.noise import (
@@ -16,6 +17,29 @@ import os
 import numpy as np
 from matplotlib import pyplot as plt
 import time
+
+
+class EpisodeEndCallback(BaseCallback):
+    def __init(self, verbose=0, save_path=None):
+        super(EpisodeEndCallback, self).__init__(verbose)
+        self.save_path = None
+
+    def _on_step(self):
+        if not self.save_path:
+            return
+        done = self.locals.get("terminated") or self.locals.get("truncated")
+        if done:
+            print("Episode end")
+            # env = self.training_env
+            # if env and env.render_mode is "rgb_array_graph":
+            # X = np.array(env.render(), dtype=np.uint8)
+            # num_timesteps = self.num_timesteps
+            #
+            # plt.imsave(
+            # f"{self.save_path}/{num_timesteps:.1e}.png",
+            # X,
+            # )
+            return True
 
 
 def fill_reward_file(imgs_dir: str):
@@ -36,7 +60,7 @@ env_name = "Satellite-SE2-v0"
 Algo = TD3
 Algo_name = "TD3"
 # ENT = 0.01
-use_last_model = False
+use_last_model = True
 
 if use_last_model:
     date: str = input("Insert date: ")
@@ -59,9 +83,9 @@ os.makedirs(imgs_dir, exist_ok=True)
 fill_reward_file(imgs_dir)
 
 
-Y0 = 8
+Y0 = 0
 starting_state = np.array([0, Y0, 0, Y0 / 2000, 0, 0, 0, 0])
-starting_noise = np.array([0.3, 0.3, 0.4, 1e-5, 1e-5, 1e-3, 0, 0])
+starting_noise = np.array([2, 10, np.pi, 1e-1, 1e-4, 1e-3, 0, 0])
 
 
 def run_episode(
@@ -113,8 +137,8 @@ O_params = {
     "dt": 1e-2,
     "initial_noise": None,
 }
-action_noise = OrnsteinUhlenbeckActionNoise(**params, **O_params)
-# action_noise = NormalActionNoise(**params)
+# action_noise = OrnsteinUhlenbeckActionNoise(**params, **O_params)
+action_noise = NormalActionNoise(**params)
 
 params_episode = {
     "env": env_maker(render_mode="rgb_array_graph"),
@@ -137,6 +161,7 @@ params_algo = {
     "action_noise": action_noise,
     "policy_delay": 50,  # 2,
     "policy_kwargs": dict(net_arch=[400, 300]),
+    "callback": EpisodeEndCallback(),
 }
 
 TIMESTEPS = 200_000

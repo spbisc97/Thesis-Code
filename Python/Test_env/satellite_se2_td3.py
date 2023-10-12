@@ -24,9 +24,9 @@ class EpisodeEndCallback(BaseCallback):
         super(EpisodeEndCallback, self).__init__(verbose)
         self.save_path = None
 
-    def _on_step(self):
-        if not self.save_path:
-            return
+    def _on_step(self) -> bool:
+        # if not self.save_path:
+        # return
         done = self.locals.get("terminated") or self.locals.get("truncated")
         if done:
             print("Episode end")
@@ -39,7 +39,7 @@ class EpisodeEndCallback(BaseCallback):
             # f"{self.save_path}/{num_timesteps:.1e}.png",
             # X,
             # )
-            return True
+        return True
 
 
 def fill_reward_file(imgs_dir: str):
@@ -60,7 +60,7 @@ env_name = "Satellite-SE2-v0"
 Algo = TD3
 Algo_name = "TD3"
 # ENT = 0.01
-use_last_model = True
+use_last_model = False
 
 if use_last_model:
     date: str = input("Insert date: ")
@@ -81,11 +81,6 @@ os.makedirs(logdir, exist_ok=True)
 os.makedirs(imgs_dir, exist_ok=True)
 
 fill_reward_file(imgs_dir)
-
-
-Y0 = 0
-starting_state = np.array([0, Y0, 0, Y0 / 2000, 0, 0, 0, 0])
-starting_noise = np.array([2, 10, np.pi, 1e-1, 1e-4, 1e-3, 0, 0])
 
 
 def run_episode(
@@ -110,8 +105,6 @@ def run_episode(
 def env_maker(render_mode=None):
     env = gym.make(
         env_name,
-        starting_state=starting_state,
-        starting_noise=starting_noise,
         render_mode=render_mode,
         step=0.1,
     )
@@ -160,11 +153,19 @@ params_algo = {
     "tensorboard_log": logdir,
     "action_noise": action_noise,
     "policy_delay": 50,  # 2,
-    "policy_kwargs": dict(net_arch=[400, 300]),
+    "policy_kwargs": dict(net_arch=[500, 400]),
+}
+
+
+TIMESTEPS = 200_000
+params_learn = {
+    "total_timesteps": TIMESTEPS,
+    "reset_num_timesteps": False,
+    "log_interval": 1,
+    "progress_bar": True,
     "callback": EpisodeEndCallback(),
 }
 
-TIMESTEPS = 200_000
 if last_model > 0:
     model = Algo.load(
         f"{models_dir}/{Algo_name}_{last_model}",
@@ -195,11 +196,8 @@ mean_reward, std_reward = evaluate_policy(
 print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
 for i in range(last_model + 1, last_model + epochs + 1):
     model.learn(
-        total_timesteps=TIMESTEPS,
-        reset_num_timesteps=False,
+        **params_learn,
         tb_log_name=f"run_{i}",
-        log_interval=1,
-        progress_bar=True,
     )
     model.save(f"{models_dir}/{Algo_name}_{i}")
     last_model = i

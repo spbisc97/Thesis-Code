@@ -24,13 +24,13 @@ if test==1
     days=1;
     stepsize=0.05;
     timespan=1:3600*24*days;
-    opts = odeset("MaxStep",stepsize*2);
+    opts = odeset("MaxStep",stepsize);
     f=figure(1);
     hold off
-    [t,w1]=ode45(@(t,w) Sat_dyn_Lin(t,w,[0,0.1*sin(t/1000)],p),timespan,initialconditions,opts);
+    [t,w1]=ode45(@(t,w) Sat_dyn_Lin(t,w,[0,0],p),timespan,initialconditions,opts);
     plot3(w1(:,1),w1(:,2),t)
     hold on
-    [t,w2]=ode45(@(t,w) Sat_dyn_nonLin(t,w,[0,0.1*sin(t/1000)],p),timespan,initialconditions,opts);
+    [t,w2]=ode45(@(t,w) Sat_dyn_nonLin(t,w,[0,0],p),timespan,initialconditions,opts);
     plot3(w2(:,1),w2(:,2),t)
     % nonLinear=1
     % [t,w2]=ode45(@(t,w) Sat_dyn(t,w,[0,0],p,nonLinear),timespan,initialconditions);

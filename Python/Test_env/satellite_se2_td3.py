@@ -49,6 +49,7 @@ def fill_reward_file(imgs_dir: str):
     print("```{python}", file=rewfile)
     print(inspect.getsource(Satellite_SE2._reward_function), file=rewfile)
     print("```", file=rewfile)
+    rewfile.close()
 
 
 file_path = os.path.dirname(__file__)

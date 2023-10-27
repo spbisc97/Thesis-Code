@@ -172,10 +172,10 @@ function Tester(test_n, length_hours)
         %f_goal_traj=@(y) [0;0];
         
         %% Initial Conditions
-        eulZYX = [0, -0, 0];
+        eulZYX = [2, -1, 3];
         q0 = eul2quat(eulZYX)';
         y0_att = [q0; 0; 0; 0];
-        y0_tra = [1000; 400; 10; 0; 0; 0];
+        y0_tra = [0; 1000; 0; 0.5; 0; 0];
         y0_mass = Sat_params().fuel_mass;
         y0 = [y0_tra; y0_att; y0_mass];
         counter = 1;

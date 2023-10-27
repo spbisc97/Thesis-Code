@@ -68,7 +68,7 @@ function Q=get_Q_tra()
     Q=diag([10,10,30,1,1,1]*1e-5);
 end
 function R=get_R_tra()
-    R=diag([1,1,1])*1e15;
+    R=diag([1,1,1])*1e7;
 end
 function Return_lqr_values()
     %[A,B]=get_AB_tra([0;0;0;0;0;0;10],[0;0;0]);

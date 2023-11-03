@@ -81,21 +81,27 @@ if test==2
     initialconditions=[0 y0 pi/2 y0/2000 0 0]';
     days=1;
     stepsize=0.05;
-    timespan=1:stepsize:3600*24*days;
-    opts = odeset('MaxStep',stepsize*2); %avoid if possible,but tolerance is too low
-    %opts = odeset("RelTol",1e-10); %1e-8 seems to be enought, means ~ 1cm accuracy,
+    timespan05=1:stepsize:3600*24*days;
+    timespan1=1:(stepsize*2):3600*24*days;
+    %opts = odeset('MaxStep',stepsize*2); %avoid if possible,but tolerance is too low
+    opts = odeset("RelTol",1e-6); %1e-8 seems to be enought, means ~ 1cm accuracy,
     %adding this to ode makes it much accurate but a little slower than rk4
 
     %I could try adding absolute tol
-
+    timespan=timespan05;
     control=@(t) [1e-2;1e-2*sin(t/10000+pi/2)]' ;
     fh=@(t,w) Sat_dyn_Lin(t,w,control(t),p);
-
     tic
-    [t1,w1]=ode45(fh,timespan,initialconditions,opts); %Dormand–Prince
+    [t1,w1]=ode45(fh,timespan,initialconditions,odeset("RelTol",1e-6)); %Dormand–Prince
     toc
     tic
-    [t2,w2]=RK4(fh,timespan,initialconditions);
+    [t1,w5]=ode45(fh,timespan,initialconditions); %Dormand–Prince
+    toc
+    tic
+    [t1,w4]=ode45(fh,timespan,initialconditions,odeset('MaxStep',stepsize*2)); %Dormand–Prince
+    toc
+    tic
+    [t2,w2]=RK4(fh,timespan,initialconditions); 
     toc
     tic
     [t3,w3]=Euler(fh,timespan,initialconditions);
@@ -104,11 +110,33 @@ if test==2
     % nonLinear=1
     % [t,w2]=ode45(@(t,w) Sat_dyn(t,w,[0,0],p,nonLinear),timespan,initialconditions);
     f=figure(2);
-    plot(t1,w1(:,1:2),'--','DisplayName','w1')
+    plot(t1,w1(:,1),'--','DisplayName','odeRELTOL',LineWidth=2)
     hold on
-    plot(t2,w2(:,1:2),'--','DisplayName','w2')
+    plot(t2,w2(:,1),'--','DisplayName','RK4')
     hold on
-    plot(t3,w3(:,1:2),'--','DisplayName','w3')
+    plot(t3,w3(:,1),'--','DisplayName','EULER')
+    hold on
+    plot(t1,w4(:,1),'--','DisplayName','odeMaxStep')
+    hold on
+    plot(t1,w5(:,1),'--','DisplayName','ode',LineWidth=2)
+    hold on
+    
+    grid on
+    legend
+    plot_settings(f)
+
+    f=figure(5);
+    plot(t1,w1(:,2),'--','DisplayName','odeRELTOL',LineWidth=2)
+    hold on
+    plot(t2,w2(:,2),'--','DisplayName','RK4')
+    hold on
+    plot(t3,w3(:,2),'--','DisplayName','EULER')
+    hold on
+    plot(t1,w4(:,2),'--','DisplayName','odeMaxStep')
+    hold on
+    plot(t1,w5(:,2),'--','DisplayName','ode',LineWidth=2)
+    hold on
+
 
 
     grid on

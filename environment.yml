@@ -7,7 +7,7 @@ channels:
 dependencies:
   - python==3.10.11
   - pip==23.0.1
-  - gymnasium
+  - gymnasium>=1.0
   - matplotlib
   - numba
   - numpy
@@ -16,4 +16,4 @@ dependencies:
   - stable-baselines3==2.1.0
   - snakeviz
   - pip:
-    - -r Python/requirements.txt # install from requirements.txte
+    - -r Python/SafeGym/requirements.txt # install from package requirements

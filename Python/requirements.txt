@@ -1,8 +1,0 @@
-ffmpegio
-gymnasium
-matplotlib
-numba
-numpy
-pygame
-scipy
-stable_baselines3==2

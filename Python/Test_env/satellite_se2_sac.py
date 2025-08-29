@@ -7,13 +7,13 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.17.3
 #   kernelspec:
-#     display_name: Python 3 (ipykernel)
+#     display_name: SafeRL
 #     language: python
 #     name: python3
 # ---
 
 # %%
-from stable_baselines3 import PPO
+from stable_baselines3 import SAC
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
@@ -42,8 +42,8 @@ import safegym
 env_name = "Satellite-SE2-v0"
 # env = gym.make(env_name)
 
-Algo = PPO
-Algo_name = "PPO"
+Algo = SAC
+Algo_name = "SAC"
 # ENT = 0.01
 use_last_model = False
 
@@ -85,7 +85,7 @@ def fill_reward_file(imgs_dir: str,**kwargs):
 
 # %%
 def run_episode(
-    model, env, model_name="PPO", model_num=0, model_timesteps=0, **kargs
+    model, env, model_name="SAC", model_num=0, model_timesteps=0, **kargs
 ):
     term = False
     obs, info = env.reset()
@@ -134,7 +134,7 @@ STARTING_NOISE = np.array(
     ],
     dtype=np.float32,
 )
-initial_integraton_steps = np.array([0, 400], dtype=np.int32)
+initial_integration_steps = np.array([0, 400], dtype=np.int32)
 # REWARD_WEIGHTS = distance_decrease,-distance,-action,-speed,-angle_speed
 REWARD_WEIGHTS = np.array([20, 0.5, 0.5, 1, 30], dtype=np.float32)
 
@@ -166,7 +166,7 @@ def env_maker(render_mode=None):
 
 # %%
 
-env = make_vec_env(env_maker, n_envs=2)
+env = make_vec_env(env_maker, n_envs=1)
 
 # env = gym.make(env_name)
 n_actions = 2
@@ -198,22 +198,24 @@ params_common_algo = {
 }
 params_algo = {
     **params_common_algo,
-    "learning_rate": 0.0002,  # 0.0003,
-    "n_steps":4096,#2048 horizon
-    "n_epochs":10,#10
-    "batch_size": 256,  # 100,
-    "gamma": 0.9997,  # 0.99,
-    "gae_lambda":0.95,# 0.95,
-    "clip_range": 0.2,  # 0.2,
-    "clip_range_vf": None,#None
-    "normalize_advantage": True, #True
-    "ent_coef":0.01,#0.0
-    "vf_coef":0.5,#0.5
-    "max_grad_norm": 0.5,#0.5
-    "use_sde": False,#False
-    "sde_sample_freq": -1,#-1
-    "target_kl": None,#None
-    "policy_kwargs": dict(net_arch=[512, 1024, 256]),    
+    'learning_rate':0.0003, 
+    'buffer_size':1000000, 
+    'learning_starts':100, 
+    'batch_size':256, 
+    'tau':0.005, 
+    'gamma':0.999, #0.99
+    'train_freq':1, 
+    'gradient_steps':1, 
+    'action_noise':None, 
+    'replay_buffer_class':None, 
+    'replay_buffer_kwargs':None, 
+    'optimize_memory_usage':False,
+    #'ent_coef'='auto', 
+    'target_update_interval':1, 
+    'target_entropy':'auto', 
+    'use_sde':False,
+    'sde_sample_freq':-1,
+    'use_sde_at_warmup':False
 }
 
 TIMESTEPS = 200_000

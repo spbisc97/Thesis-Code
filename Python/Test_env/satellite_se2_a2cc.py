@@ -13,7 +13,7 @@
 # ---
 
 # %%
-from stable_baselines3 import PPO
+from stable_baselines3 import A2C
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
@@ -42,8 +42,8 @@ import safegym
 env_name = "Satellite-SE2-v0"
 # env = gym.make(env_name)
 
-Algo = PPO
-Algo_name = "PPO"
+Algo = A2C
+Algo_name = "A2C"
 # ENT = 0.01
 use_last_model = False
 
@@ -85,7 +85,7 @@ def fill_reward_file(imgs_dir: str,**kwargs):
 
 # %%
 def run_episode(
-    model, env, model_name="PPO", model_num=0, model_timesteps=0, **kargs
+    model, env, model_name="A2C", model_num=0, model_timesteps=0, **kargs
 ):
     term = False
     obs, info = env.reset()
@@ -136,7 +136,7 @@ STARTING_NOISE = np.array(
 )
 initial_integraton_steps = np.array([0, 400], dtype=np.int32)
 # REWARD_WEIGHTS = distance_decrease,-distance,-action,-speed,-angle_speed
-REWARD_WEIGHTS = np.array([20, 0.5, 0.5, 1, 30], dtype=np.float32)
+REWARD_WEIGHTS = np.array([20, 0.8, 0.5, 1, 30], dtype=np.float32)
 
 
 env_params={
@@ -188,7 +188,6 @@ params_episode = {
     "env": env_maker(render_mode="rgb_array_graph"),
     "model_name": Algo_name,
 }
-
 params_common_algo = {
     "policy": "MlpPolicy",
     "env": env,
@@ -196,24 +195,23 @@ params_common_algo = {
     "tensorboard_log": logdir,
     "stats_window_size": 30,
 }
+
 params_algo = {
-    **params_common_algo,
-    "learning_rate": 0.0002,  # 0.0003,
-    "n_steps":4096,#2048 horizon
-    "n_epochs":10,#10
-    "batch_size": 256,  # 100,
-    "gamma": 0.9997,  # 0.99,
-    "gae_lambda":0.95,# 0.95,
-    "clip_range": 0.2,  # 0.2,
-    "clip_range_vf": None,#None
-    "normalize_advantage": True, #True
-    "ent_coef":0.01,#0.0
-    "vf_coef":0.5,#0.5
-    "max_grad_norm": 0.5,#0.5
-    "use_sde": False,#False
-    "sde_sample_freq": -1,#-1
-    "target_kl": None,#None
-    "policy_kwargs": dict(net_arch=[512, 1024, 256]),    
+    "learning_rate":0.0007, 
+    "n_steps":20, 
+    "gamma":0.999, 
+    "gae_lambda":1.0, 
+    "ent_coef":0.01, 
+    "vf_coef":0.5, 
+    "max_grad_norm":0.5, 
+    "rms_prop_eps":1e-05, 
+    "use_rms_prop":True, 
+    "use_sde":False, 
+    "sde_sample_freq":-1, 
+    "normalize_advantage":False,
+    "policy_kwargs": dict(net_arch=[512, 512, 512]),
+    "stats_window_size":30,
+    
 }
 
 TIMESTEPS = 200_000
@@ -280,3 +278,5 @@ for i in range(last_model + 1, last_model + epochs + 1):
         model_num=last_model,
         model_timesteps=model.num_timesteps,
     )
+
+# %%

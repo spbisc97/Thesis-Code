@@ -26,7 +26,7 @@ from stable_baselines3.common.noise import (
 )
 from safegym.envs import Satellite_SE2
 import gymnasium as gym
-from gymnasium.wrappers.time_limit import TimeLimit
+from gymnasium.wrappers import TimeLimit
 import numpy as np
 import os
 import numpy as np
@@ -52,6 +52,7 @@ if use_last_model:
     last_model: int = int(input("Insert model number: "))
 else:
     date: str = time.strftime("%m_%d_%H_%M", time.localtime())
+    
     last_model: int = 0
 
 print({"date": date, "last_model": last_model})
@@ -104,7 +105,7 @@ def run_episode(
 
 
 # %%
-y0: np.float32 = np.float32(10)  # [m]
+y0: np.float32 = np.float32(5)  # [m]
 # STARTING_STATE=
 radius: np.float32 = y0  # [m],
 speed_dev: np.float32 = np.float32(0)  # [m/s],
@@ -112,16 +113,25 @@ theta: np.float32 = np.float32(0)  # [rad],
 theta_dot: np.float32 = np.float32(0)  # [rad/s],
 phi: np.float32 = np.float32(0)  # [rad]
 phi_dot: np.float32 = np.float32(0)  # [rad/s]
+
+# Target initial state: [phi_target, phi_dot_target]
+phi_target: np.float32 = np.float32(0)  # [rad]
+phi_dot_target: np.float32 = np.float32(0)  # [rad/s]
+
 STARTING_STATE = np.array(
-    [radius, speed_dev, theta, theta_dot, phi, phi_dot], dtype=np.float32
+    [radius, speed_dev, theta, theta_dot, phi, phi_dot, phi_target, phi_dot_target], dtype=np.float32
 )
 
-radius_noise: np.float32 = np.float32(5)
-speed_noise_multiplier: np.float32 = np.float32(0.01)
-theta_noise: np.float32 = np.float32(np.pi * 2)
-theta_dot_noise: np.float32 = np.float32(1e-3)
+radius_noise: np.float32 = np.float32(0)
+speed_noise_multiplier: np.float32 = np.float32(0)
+theta_noise: np.float32 = np.float32(0)
+theta_dot_noise: np.float32 = np.float32(0)
 phi_noise: np.float32 = np.float32(0)
 phi_dot_noise: np.float32 = np.float32(0)
+
+# Target noise: [phi_target_noise, phi_dot_target_noise]
+phi_target_noise: np.float32 = np.float32(0)  # [rad]
+phi_dot_target_noise: np.float32 = np.float32(0)  # [rad/s]
 
 STARTING_NOISE = np.array(
     [
@@ -131,21 +141,23 @@ STARTING_NOISE = np.array(
         theta_dot_noise,
         phi_noise,
         phi_dot_noise,
+        phi_target_noise,
+        phi_dot_target_noise,
     ],
     dtype=np.float32,
 )
-initial_integration_steps = np.array([0, 400], dtype=np.int32)
+initial_integration_steps = np.array([0,1], dtype=np.int32)
 # REWARD_WEIGHTS = distance_decrease,-distance,-action,-speed,-angle_speed
 REWARD_WEIGHTS = np.array([20, 0.5, 0.5, 1, 30], dtype=np.float32)
 
 
 env_params={
-    "starting_state":STARTING_STATE,
-    "starting_noise":STARTING_NOISE,
+    # "starting_state":STARTING_STATE,
+    # "starting_noise":STARTING_NOISE,
     "initial_integration_steps":initial_integraton_steps,
     "underactuated":True,
-     "step":0.1,
-    "reward_weights":REWARD_WEIGHTS,
+    "step":10,
+    # "reward_weights":REWARD_WEIGHTS,
 
 }
 
@@ -218,7 +230,7 @@ params_algo = {
     'use_sde_at_warmup':False
 }
 
-TIMESTEPS = 200_000
+TIMESTEPS = 5_000
 params_learn = {
     "total_timesteps": TIMESTEPS,
     "reset_num_timesteps": False,
